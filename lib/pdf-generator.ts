@@ -6,230 +6,486 @@ export function generatePDFReport(result: AssessmentResult): jsPDF {
   const doc = new jsPDF();
   const { scoreResult, dimensionScores, aiRecommendation, userProfile } = result;
 
-  // Page 1: Cover Page
-  doc.setFillColor(102, 126, 234);
-  doc.rect(0, 0, 210, 80, 'F');
+  // Brand Colors
+  const brandPurple = [124, 58, 237];
+  const brandBlue = [59, 130, 246];
+  const brandGreen = [34, 197, 94];
+  const brandOrange = [249, 115, 22];
+  const brandRed = [239, 68, 68];
+  const lightGray = [249, 250, 251];
+  const mediumGray = [156, 163, 175];
+
+  // Helper function to add gradient background
+  const addGradientHeader = (y: number, height: number) => {
+    doc.setFillColor(brandPurple[0], brandPurple[1], brandPurple[2]);
+    doc.rect(0, y, 105, height, 'F');
+    doc.setFillColor(brandBlue[0], brandBlue[1], brandBlue[2]);
+    doc.rect(105, y, 105, height, 'F');
+  };
+
+  // Helper for colored boxes
+  const addColoredBox = (x: number, y: number, w: number, h: number, color: number[], text: string) => {
+    doc.setFillColor(color[0], color[1], color[2]);
+    doc.roundedRect(x, y, w, h, 3, 3, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(text, x + w / 2, y + h / 2 + 2, { align: 'center' });
+  };
+
+  // Get status color
+  const getStatusColor = () => {
+    switch (scoreResult.level) {
+      case 'green':
+        return brandGreen;
+      case 'yellow':
+        return brandOrange;
+      case 'red':
+        return brandRed;
+      default:
+        return mediumGray;
+    }
+  };
+
+  // ===== PAGE 1: COVER PAGE =====
+  addGradientHeader(0, 120);
+
+  // Decorative circles
+  doc.setFillColor(255, 255, 255);
+  doc.setGState(doc.GState({ opacity: 0.1 }));
+  doc.circle(30, 30, 40, 'F');
+  doc.circle(180, 80, 50, 'F');
+  doc.circle(160, 30, 25, 'F');
+  doc.setGState(doc.GState({ opacity: 1 }));
+
+  // Title
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(38);
+  doc.text('BUSINESS IDEA', 105, 45, { align: 'center' });
+  doc.setFontSize(36);
+  doc.text('VALIDATION REPORT', 105, 60, { align: 'center' });
+
+  // Score Circle
+  const statusColor = getStatusColor();
+  doc.setFillColor(255, 255, 255);
+  doc.circle(105, 90, 22, 'F');
+  doc.setFillColor(statusColor[0], statusColor[1], statusColor[2]);
+  doc.circle(105, 90, 20, 'F');
 
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(32);
-  doc.text('Business Idea', 105, 30, { align: 'center' });
-  doc.text('Validation Report', 105, 45, { align: 'center' });
+  doc.setFont('helvetica', 'bold');
+  doc.text(`${scoreResult.score}%`, 105, 95, { align: 'center' });
 
-  doc.setFontSize(48);
-  doc.text(`${scoreResult.score}%`, 105, 65, { align: 'center' });
+  // Status Badge
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(75, 130, 60, 12, 2, 2, 'F');
+  doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text(scoreResult.title.split('-')[0].trim(), 105, 138, { align: 'center' });
 
-  doc.setTextColor(0, 0, 0);
-  doc.setFontSize(16);
-  doc.text(userProfile.name || 'Entrepreneur', 105, 100, { align: 'center' });
+  // User Info Section
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(40, 155, 130, 35, 3, 3, 'F');
 
-  doc.setFontSize(12);
+  doc.setTextColor(51, 51, 51);
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text(userProfile.name || 'Entrepreneur', 105, 168, { align: 'center' });
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(107, 114, 128);
+  if (userProfile.industry || userProfile.location) {
+    const details = [userProfile.industry, userProfile.location].filter(Boolean).join(' • ');
+    doc.text(details, 105, 176, { align: 'center' });
+  }
+
+  // Date
   const date = new Date().toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
-  doc.text(date, 105, 110, { align: 'center' });
+  doc.setFontSize(9);
+  doc.text(date, 105, 184, { align: 'center' });
 
+  // Footer
   doc.setFontSize(10);
-  doc.setTextColor(100, 100, 100);
-  doc.text('Powered by BeamX Solutions', 105, 280, { align: 'center' });
+  doc.setTextColor(156, 163, 175);
+  doc.text('Powered by BeamX Solutions', 105, 275, { align: 'center' });
+  doc.setFontSize(8);
+  doc.text('Data-Driven Startup Validation', 105, 282, { align: 'center' });
 
-  // Page 2: Executive Summary
+  // ===== PAGE 2: EXECUTIVE SUMMARY =====
   doc.addPage();
-  doc.setFontSize(20);
-  doc.setTextColor(102, 126, 234);
-  doc.text('Executive Summary', 20, 20);
 
-  doc.setFontSize(12);
-  doc.setTextColor(0, 0, 0);
-  doc.text(scoreResult.title, 20, 35);
+  // Header
+  addGradientHeader(0, 35);
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(24);
+  doc.setFont('helvetica', 'bold');
+  doc.text('EXECUTIVE SUMMARY', 20, 22);
 
-  doc.setFontSize(11);
-  const summaryLines = doc.splitTextToSize(scoreResult.summary, 170);
-  doc.text(summaryLines, 20, 45);
+  // Score Status Box
+  doc.setFillColor(statusColor[0], statusColor[1], statusColor[2]);
+  doc.roundedRect(15, 45, 180, 55, 4, 4, 'F');
 
-  // Score breakdown box
-  doc.setDrawColor(102, 126, 234);
-  doc.setLineWidth(0.5);
-  doc.rect(20, 70, 170, 40);
+  // White inner box
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(20, 50, 170, 45, 3, 3, 'F');
 
-  doc.setFontSize(10);
-  doc.setTextColor(102, 126, 234);
-  doc.text('READINESS ASSESSMENT', 25, 77);
-
-  doc.setTextColor(0, 0, 0);
-  doc.text(`Overall Score: ${scoreResult.score}% (${scoreResult.totalPositive}/10)`, 25, 87);
-  doc.text(`Status: ${scoreResult.level.toUpperCase()} LIGHT`, 25, 95);
-  doc.text(`Recommended Timeframe: ${scoreResult.timeframe}`, 25, 103);
-
-  // Next steps
-  doc.setFontSize(14);
-  doc.setTextColor(102, 126, 234);
-  doc.text('Immediate Next Steps', 20, 125);
+  doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text(scoreResult.title, 25, 60);
 
   doc.setFontSize(10);
-  doc.setTextColor(0, 0, 0);
-  let yPos = 135;
+  doc.setTextColor(55, 65, 81);
+  doc.setFont('helvetica', 'normal');
+  const summaryLines = doc.splitTextToSize(scoreResult.summary, 160);
+  doc.text(summaryLines, 25, 70);
+
+  // Score Metrics
+  let yPos = 110;
+  doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
+  doc.roundedRect(15, yPos, 180, 35, 3, 3, 'F');
+
+  doc.setFontSize(9);
+  doc.setTextColor(107, 114, 128);
+  doc.setFont('helvetica', 'bold');
+  doc.text('READINESS METRICS', 20, yPos + 8);
+
+  doc.setFontSize(10);
+  doc.setTextColor(31, 41, 55);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Overall Score: ${scoreResult.score}% (${scoreResult.totalPositive}/10 positive)`, 20, yPos + 18);
+  doc.text(`Status: ${scoreResult.level.toUpperCase()} LIGHT`, 20, yPos + 26);
+  doc.text(`Timeframe: ${scoreResult.timeframe}`, 20, yPos + 34);
+
+  // Next Steps
+  yPos = 155;
+  doc.setFontSize(16);
+  doc.setTextColor(brandPurple[0], brandPurple[1], brandPurple[2]);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Immediate Next Steps', 20, yPos);
+
+  doc.setFontSize(10);
+  doc.setTextColor(55, 65, 81);
+  doc.setFont('helvetica', 'normal');
+  yPos += 12;
+
   scoreResult.actionItems.forEach((item, index) => {
-    const lines = doc.splitTextToSize(`${index + 1}. ${item}`, 165);
-    doc.text(lines, 25, yPos);
-    yPos += lines.length * 6;
+    // Checkbox
+    doc.setDrawColor(124, 58, 237);
+    doc.setLineWidth(0.5);
+    doc.rect(20, yPos - 3, 4, 4);
+
+    const lines = doc.splitTextToSize(`${index + 1}. ${item}`, 160);
+    doc.text(lines, 28, yPos);
+    yPos += lines.length * 6 + 2;
   });
 
-  // Page 3: Dimension Analysis
+  // ===== PAGE 3: DIMENSION ANALYSIS =====
   doc.addPage();
-  doc.setFontSize(20);
-  doc.setTextColor(102, 126, 234);
-  doc.text('Detailed Dimension Analysis', 20, 20);
 
+  // Header
+  addGradientHeader(0, 35);
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(24);
+  doc.setFont('helvetica', 'bold');
+  doc.text('DIMENSION ANALYSIS', 20, 22);
+
+  // Dimensions Table
   const dimensionData = dimensionScores.map((dim) => [
     dim.name,
     `${dim.score}/${dim.maxScore}`,
-    dim.score === dim.maxScore ? '✓ Strong' : '⚠ Needs Work',
+    dim.score === dim.maxScore ? '✓ Strong' : '○ Needs Work',
+    dim.score === dim.maxScore ? '100%' : '0%',
   ]);
 
   autoTable(doc, {
-    startY: 30,
-    head: [['Dimension', 'Score', 'Status']],
+    startY: 45,
+    head: [['Dimension', 'Score', 'Status', 'Progress']],
     body: dimensionData,
-    theme: 'striped',
-    headStyles: { fillColor: [102, 126, 234] },
-    alternateRowStyles: { fillColor: [245, 247, 250] },
+    theme: 'grid',
+    headStyles: {
+      fillColor: [124, 58, 237],
+      fontSize: 11,
+      fontStyle: 'bold',
+      halign: 'left',
+    },
+    columnStyles: {
+      0: { cellWidth: 70 },
+      1: { cellWidth: 30, halign: 'center' },
+      2: { cellWidth: 50, halign: 'center' },
+      3: { cellWidth: 40, halign: 'center' },
+    },
+    alternateRowStyles: { fillColor: [249, 250, 251] },
+    styles: {
+      fontSize: 10,
+      cellPadding: 5,
+    },
+    didParseCell: function (data) {
+      if (data.row.index >= 0 && data.column.index === 2) {
+        const cell = data.cell;
+        if (cell.text[0].includes('Strong')) {
+          cell.styles.textColor = [34, 197, 94];
+          cell.styles.fontStyle = 'bold';
+        } else {
+          cell.styles.textColor = [249, 115, 22];
+        }
+      }
+    },
   });
 
-  // Page 4-5: AI Recommendations (if available)
-  if (aiRecommendation) {
-    doc.addPage();
-    doc.setFontSize(20);
-    doc.setTextColor(102, 126, 234);
-    doc.text('AI-Powered Recommendations', 20, 20);
+  // Visual Score Summary
+  const tableEnd = (doc as any).lastAutoTable.finalY + 15;
+  doc.setFontSize(14);
+  doc.setTextColor(124, 58, 237);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Your Strengths & Opportunities', 20, tableEnd);
 
-    // Strengths
-    doc.setFontSize(14);
-    doc.setTextColor(0, 150, 0);
-    doc.text('Your Strengths', 20, 35);
+  const strongDimensions = dimensionScores.filter((d) => d.score === d.maxScore);
+  const weakDimensions = dimensionScores.filter((d) => d.score < d.maxScore);
 
-    doc.setFontSize(10);
-    doc.setTextColor(0, 0, 0);
-    let yPosition = 45;
-    aiRecommendation.strengths.forEach((strength, index) => {
-      const lines = doc.splitTextToSize(`✓ ${strength}`, 165);
-      doc.text(lines, 25, yPosition);
-      yPosition += lines.length * 6;
-    });
+  yPos = tableEnd + 10;
 
-    // Gaps
-    yPosition += 10;
-    doc.setFontSize(14);
-    doc.setTextColor(200, 0, 0);
-    doc.text('Areas for Improvement', 20, yPosition);
+  // Strengths
+  if (strongDimensions.length > 0) {
+    doc.setFillColor(34, 197, 94);
+    doc.roundedRect(18, yPos - 4, 4, 4, 1, 1, 'F');
+    doc.setFontSize(11);
+    doc.setTextColor(34, 197, 94);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Strengths:', 25, yPos);
 
-    yPosition += 10;
-    doc.setFontSize(10);
-    doc.setTextColor(0, 0, 0);
-    aiRecommendation.gaps.forEach((gap, index) => {
-      const lines = doc.splitTextToSize(`• ${gap}`, 165);
-      doc.text(lines, 25, yPosition);
-      yPosition += lines.length * 6;
-    });
-
-    // Personalized Plan
-    doc.addPage();
-    doc.setFontSize(20);
-    doc.setTextColor(102, 126, 234);
-    doc.text('Your Personalized Action Plan', 20, 20);
-
-    doc.setFontSize(10);
-    doc.setTextColor(0, 0, 0);
-    const planLines = doc.splitTextToSize(aiRecommendation.personalizedPlan, 170);
-    doc.text(planLines, 20, 35);
-
-    // Weekly Roadmap
-    let roadmapY = 35 + planLines.length * 6 + 15;
-    doc.setFontSize(14);
-    doc.setTextColor(102, 126, 234);
-    doc.text('Week-by-Week Roadmap', 20, roadmapY);
-
-    roadmapY += 10;
-    doc.setFontSize(10);
-    doc.setTextColor(0, 0, 0);
-
-    aiRecommendation.weeklyRoadmap.forEach((week) => {
-      if (roadmapY > 250) {
-        doc.addPage();
-        roadmapY = 20;
-      }
-
-      doc.setFont('helvetica', 'bold');
-      doc.text(`Week ${week.week}:`, 20, roadmapY);
-      doc.setFont('helvetica', 'normal');
-      roadmapY += 7;
-
-      week.tasks.forEach((task) => {
-        const taskLines = doc.splitTextToSize(`□ ${task}`, 165);
-        doc.text(taskLines, 25, roadmapY);
-        roadmapY += taskLines.length * 6;
-      });
-
-      roadmapY += 5;
-    });
-
-    // Resources
-    doc.addPage();
-    doc.setFontSize(20);
-    doc.setTextColor(102, 126, 234);
-    doc.text('Recommended Resources', 20, 20);
-
-    let resourceY = 35;
-    aiRecommendation.resources.forEach((resource) => {
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text(resource.title, 20, resourceY);
-
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      const descLines = doc.splitTextToSize(resource.description, 170);
-      doc.text(descLines, 20, resourceY + 7);
-
-      resourceY += descLines.length * 6 + 12;
-
-      if (resourceY > 250) {
-        doc.addPage();
-        resourceY = 20;
-      }
-    });
-
-    // Risk Assessment
-    doc.addPage();
-    doc.setFontSize(20);
-    doc.setTextColor(102, 126, 234);
-    doc.text('Risk Assessment & Mitigation', 20, 20);
-
-    doc.setFontSize(10);
-    doc.setTextColor(0, 0, 0);
-    const riskLines = doc.splitTextToSize(aiRecommendation.riskAssessment, 170);
-    doc.text(riskLines, 20, 35);
+    doc.setFontSize(9);
+    doc.setTextColor(55, 65, 81);
+    doc.setFont('helvetica', 'normal');
+    doc.text(strongDimensions.map((d) => d.name).join(', '), 25, yPos + 6);
+    yPos += 15;
   }
 
-  // Final Page: Call to Action
+  // Opportunities
+  if (weakDimensions.length > 0) {
+    doc.setFillColor(249, 115, 22);
+    doc.roundedRect(18, yPos - 4, 4, 4, 1, 1, 'F');
+    doc.setFontSize(11);
+    doc.setTextColor(249, 115, 22);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Areas for Improvement:', 25, yPos);
+
+    doc.setFontSize(9);
+    doc.setTextColor(55, 65, 81);
+    doc.setFont('helvetica', 'normal');
+    doc.text(weakDimensions.map((d) => d.name).join(', '), 25, yPos + 6);
+  }
+
+  // ===== AI RECOMMENDATIONS (if available) =====
+  if (aiRecommendation) {
+    // PAGE 4: Strengths & Gaps
+    doc.addPage();
+    addGradientHeader(0, 35);
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text('AI-POWERED INSIGHTS', 20, 22);
+
+    yPos = 50;
+
+    // Strengths Section
+    doc.setFillColor(236, 253, 245);
+    doc.roundedRect(15, yPos, 180, 10 + aiRecommendation.strengths.length * 8, 3, 3, 'F');
+
+    doc.setFontSize(13);
+    doc.setTextColor(34, 197, 94);
+    doc.setFont('helvetica', 'bold');
+    doc.text('✓ Your Key Strengths', 20, yPos + 7);
+
+    doc.setFontSize(9);
+    doc.setTextColor(31, 41, 55);
+    doc.setFont('helvetica', 'normal');
+    yPos += 14;
+
+    aiRecommendation.strengths.forEach((strength) => {
+      const strengthLines = doc.splitTextToSize(`• ${strength}`, 170);
+      doc.text(strengthLines, 22, yPos);
+      yPos += strengthLines.length * 5;
+    });
+
+    // Gaps Section
+    yPos += 8;
+    doc.setFillColor(255, 247, 237);
+    doc.roundedRect(15, yPos, 180, 10 + aiRecommendation.gaps.length * 8, 3, 3, 'F');
+
+    doc.setFontSize(13);
+    doc.setTextColor(249, 115, 22);
+    doc.setFont('helvetica', 'bold');
+    doc.text('⚠ Critical Gaps to Address', 20, yPos + 7);
+
+    doc.setFontSize(9);
+    doc.setTextColor(31, 41, 55);
+    doc.setFont('helvetica', 'normal');
+    yPos += 14;
+
+    aiRecommendation.gaps.forEach((gap) => {
+      const gapLines = doc.splitTextToSize(`• ${gap}`, 170);
+      doc.text(gapLines, 22, yPos);
+      yPos += gapLines.length * 5;
+    });
+
+    // PAGE 5: Personalized Plan
+    doc.addPage();
+    addGradientHeader(0, 35);
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text('YOUR ACTION PLAN', 20, 22);
+
+    yPos = 50;
+    doc.setFontSize(10);
+    doc.setTextColor(31, 41, 55);
+    doc.setFont('helvetica', 'normal');
+    const planLines = doc.splitTextToSize(aiRecommendation.personalizedPlan, 170);
+    doc.text(planLines, 20, yPos);
+
+    // PAGE 6: Weekly Roadmap
+    doc.addPage();
+    addGradientHeader(0, 35);
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text('WEEKLY ROADMAP', 20, 22);
+
+    yPos = 50;
+
+    aiRecommendation.weeklyRoadmap.forEach((week) => {
+      if (yPos > 240) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      // Week Header
+      doc.setFillColor(124, 58, 237);
+      doc.roundedRect(15, yPos, 180, 10, 3, 3, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Week ${week.week}`, 20, yPos + 7);
+
+      yPos += 15;
+
+      // Tasks
+      doc.setFontSize(9);
+      doc.setTextColor(55, 65, 81);
+      doc.setFont('helvetica', 'normal');
+
+      week.tasks.forEach((task) => {
+        doc.setDrawColor(124, 58, 237);
+        doc.rect(20, yPos - 3, 3, 3);
+        const taskLines = doc.splitTextToSize(task, 160);
+        doc.text(taskLines, 27, yPos);
+        yPos += taskLines.length * 5 + 2;
+      });
+
+      yPos += 5;
+    });
+
+    // PAGE 7: Resources
+    doc.addPage();
+    addGradientHeader(0, 35);
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RECOMMENDED RESOURCES', 20, 22);
+
+    yPos = 50;
+
+    aiRecommendation.resources.forEach((resource) => {
+      if (yPos > 240) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      doc.setFillColor(249, 250, 251);
+      doc.roundedRect(15, yPos, 180, 25, 3, 3, 'F');
+
+      doc.setFontSize(11);
+      doc.setTextColor(124, 58, 237);
+      doc.setFont('helvetica', 'bold');
+      doc.text(resource.title, 20, yPos + 8);
+
+      doc.setFontSize(9);
+      doc.setTextColor(55, 65, 81);
+      doc.setFont('helvetica', 'normal');
+      const descLines = doc.splitTextToSize(resource.description, 170);
+      doc.text(descLines, 20, yPos + 15);
+
+      yPos += 30;
+    });
+
+    // PAGE 8: Risk Assessment
+    doc.addPage();
+    addGradientHeader(0, 35);
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RISK ASSESSMENT', 20, 22);
+
+    doc.setFillColor(254, 242, 242);
+    doc.roundedRect(15, 50, 180, 80, 3, 3, 'F');
+
+    doc.setFontSize(10);
+    doc.setTextColor(31, 41, 55);
+    doc.setFont('helvetica', 'normal');
+    const riskLines = doc.splitTextToSize(aiRecommendation.riskAssessment, 170);
+    doc.text(riskLines, 20, 60);
+  }
+
+  // ===== FINAL PAGE: CALL TO ACTION =====
   doc.addPage();
-  doc.setFillColor(102, 126, 234);
-  doc.rect(0, 0, 210, 297, 'F');
+  addGradientHeader(0, 297);
 
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(24);
-  doc.text('Ready to Take Action?', 105, 80, { align: 'center' });
+  // White content box
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(30, 80, 150, 120, 5, 5, 'F');
 
-  doc.setFontSize(14);
-  doc.text('BeamX Solutions is here to help you succeed', 105, 100, { align: 'center' });
+  doc.setTextColor(124, 58, 237);
+  doc.setFontSize(28);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Ready to Take Action?', 105, 110, { align: 'center' });
 
   doc.setFontSize(12);
-  doc.text('Book a free consultation:', 105, 130, { align: 'center' });
-  doc.text('www.beamxsolutions.com', 105, 145, { align: 'center' });
+  doc.setTextColor(75, 85, 99);
+  doc.setFont('helvetica', 'normal');
+  doc.text('BeamX Solutions is here to help you succeed', 105, 125, { align: 'center' });
 
+  // Offerings
+  yPos = 145;
+  doc.setFontSize(11);
+  doc.setTextColor(31, 41, 55);
+  doc.setFont('helvetica', 'bold');
+  doc.text('📞 Free 30-Min Consultation', 105, yPos, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text('www.beamxsolutions.com', 105, yPos + 6, { align: 'center' });
+
+  yPos += 18;
   doc.setFontSize(10);
-  doc.text('1-on-1 Validation Session: $97', 105, 170, { align: 'center' });
-  doc.text('"Idea to Launch" Program: $497', 105, 180, { align: 'center' });
+  doc.setFont('helvetica', 'bold');
+  doc.text('💡 1-on-1 Validation Session: $97', 105, yPos, { align: 'center' });
+
+  yPos += 8;
+  doc.text('🚀 "Idea to Launch" Program: $497', 105, yPos, { align: 'center' });
+
+  doc.setFontSize(8);
+  doc.setTextColor(156, 163, 175);
+  doc.setFont('helvetica', 'normal');
+  doc.text('© 2024 BeamX Solutions. All rights reserved.', 105, 280, { align: 'center' });
 
   return doc;
 }
