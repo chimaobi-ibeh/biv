@@ -305,6 +305,46 @@ git checkout master
 - Organized sections
 - Clear visual separation
 
+### Tokens & Fonts (applied)
+- **CSS variables** were added in `app/globals.css` and centralize colors, spacing and radii. Example:
+
+```css
+:root {
+  --bg: #08101A;
+  --surface: #0F1720;
+  --primary: #D6A93D; /* BeamX gold */
+  --secondary: #1F4B8A; /* BeamX deep blue */
+  --text-heading: #F7F8FA;
+  --text-body: #A9B1BC;
+  --muted-border: rgba(255,255,255,0.04);
+  --radius: 10px;
+  --space: 8px;
+}
+``` 
+
+- **Font**: `Poppins` was added via Google Fonts and is set as the primary `font-family` in `app/globals.css`.
+
+- **Tailwind integration**: `tailwind.config.ts` was extended to reference the CSS variables and set `fontFamily.sans` and container width. Example excerpt:
+
+```ts
+theme: {
+  extend: {
+    colors: { primary: 'var(--primary)', surface: 'var(--surface)' },
+    fontFamily: { sans: ['Poppins', 'ui-sans-serif', 'system-ui'] },
+    container: { center: true, screens: { lg: '1200px' } }
+  }
+}
+```
+
+- **Why**: central tokens make it easy to update the look across the app, keep color and spacing consistent, and allow runtime theme tweaks if needed.
+
+### Component primitives (added)
+- **Button** (`app/components/Button.tsx`): exposes `variant='primary'|'secondary'` and maps to classes `btn`, `btn-primary`, `btn-secondary`. Accessible focus state and consistent motion are included.
+- **Card** (`app/components/Card.tsx`): a simple container with `.card` styles for subtle depth and hover lift.
+- **Motion utilities**: `.reveal`, `.lift`, and `data-stagger` helpers added to `app/globals.css` for staggered fade-up reveals and subtle lift interactions.
+
+These primitives are intentionally minimal and composable; use Tailwind utilities alongside them for layout and spacing.
+
 ## Technical Improvements
 
 ### 1. Tailwind Configuration

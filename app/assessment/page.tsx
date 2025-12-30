@@ -118,6 +118,15 @@ export default function AssessmentPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center px-4 py-12">
         <div className="max-w-lg w-full">
+          <div className="mb-4">
+            <button
+              onClick={() => router.push('/')}
+              className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-purple-600 font-medium"
+            >
+              <FiArrowLeft />
+              Back to Home
+            </button>
+          </div>
           {/* Header */}
           <div className="text-center mb-8 animate-fade-in">
             <div className="inline-block p-3 bg-white rounded-2xl shadow-lg mb-4">
@@ -236,6 +245,15 @@ export default function AssessmentPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => router.push('/')}
+            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-purple-600 font-medium"
+          >
+            <FiArrowLeft />
+            Back to Home
+          </button>
+        </div>
         {/* Header with Progress */}
         <div className="mb-8">
           {/* Step Indicators */}

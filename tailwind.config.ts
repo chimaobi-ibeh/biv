@@ -9,6 +9,23 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      colors: {
+        primary: 'var(--primary)',
+        secondary: 'var(--secondary)',
+        surface: 'var(--surface)',
+        background: 'var(--bg)',
+        'text-heading': 'var(--text-heading)',
+        'text-body': 'var(--text-body)',
+        muted: 'var(--muted-border)'
+      },
+      fontFamily: {
+        sans: ['Poppins', 'ui-sans-serif', 'system-ui'],
+      },
+      container: {
+        center: true,
+        padding: '1rem',
+        screens: { lg: '1200px' },
+      },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
         'slide-up': 'slideUp 0.5s ease-out',
