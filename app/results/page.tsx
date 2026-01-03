@@ -179,9 +179,9 @@ export default function ResultsPage() {
 
   if (loading || !scoreResult) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary mx-auto mb-4"></div>
           <p className="text-gray-600">Calculating your score...</p>
         </div>
       </div>
@@ -197,15 +197,15 @@ export default function ResultsPage() {
   const getScoreColor = (level: string) => {
     switch (level) {
       case 'green':
-        return 'from-green-500 to-emerald-600';
+        return 'bg-green-500';
       case 'yellow':
-        return 'from-yellow-500 to-orange-500';
+        return 'bg-yellow-500';
       case 'red':
-        return 'from-red-500 to-rose-600';
+        return 'bg-red-500';
       default:
-        return 'from-gray-500 to-gray-600';
+        return 'bg-gray-500';
     }
-  };
+  }; 
 
   const getScoreIcon = (level: string) => {
     switch (level) {
@@ -221,10 +221,10 @@ export default function ResultsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 py-12 px-4">
+    <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-5xl mx-auto">
         {/* Score Header */}
-        <div className={`bg-gradient-to-r ${getScoreColor(scoreResult.level)} rounded-2xl shadow-2xl p-8 mb-8 text-white`}>
+        <div className={`${getScoreColor(scoreResult.level)} rounded-2xl shadow-2xl p-8 mb-8 text-white`}>
           <div className="text-center">
             <div className="flex justify-center mb-4">
               {getScoreIcon(scoreResult.level)}
@@ -241,16 +241,18 @@ export default function ResultsPage() {
             Your Readiness Breakdown
           </h3>
           <ResponsiveContainer width="100%" height={400}>
-            <RadarChart data={radarData}>
-              <PolarGrid stroke="#e5e7eb" />
+            <RadarChart data={radarData} cx="50%" cy="50%" outerRadius={150}>
+              <PolarGrid stroke="#e6e9ef" gridType="polygon" />
               <PolarAngleAxis dataKey="dimension" tick={{ fill: '#6b7280', fontSize: 12 }} />
-              <PolarRadiusAxis angle={90} domain={[0, 1]} tick={{ fill: '#6b7280' }} />
+              <PolarRadiusAxis angle={90} domain={[0, 1]} tick={false} axisLine={false} />
               <Radar
                 name="Score"
                 dataKey="score"
-                stroke="#8b5cf6"
-                fill="#8b5cf6"
-                fillOpacity={0.6}
+                stroke="#245EA6"
+                fill="#245EA6"
+                fillOpacity={0.16}
+                strokeWidth={2}
+                dot={{ r: 3, fill: '#245EA6' }}
               />
             </RadarChart>
           </ResponsiveContainer>
@@ -259,7 +261,7 @@ export default function ResultsPage() {
         {/* Action Items */}
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
           <h3 className="text-2xl font-bold mb-4 text-gray-900">Your Next Steps</h3>
-          <p className="text-purple-600 font-semibold mb-4">Timeframe: {scoreResult.timeframe}</p>
+          <p className="text-primary font-semibold mb-4">Timeframe: {scoreResult.timeframe}</p>
           <ul className="space-y-3">
             {scoreResult.actionItems.map((item, index) => (
               <li key={index} className="flex gap-3">
@@ -272,7 +274,7 @@ export default function ResultsPage() {
 
         {/* Email Capture for AI Recommendations */}
         {!emailSubmitted && !aiRecommendation && (
-          <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl shadow-xl p-8 mb-8 text-white">
+          <div className="bg-primary rounded-2xl shadow-xl p-8 mb-8 text-white">
             <h3 className="text-2xl font-bold mb-2 text-center">
               Get Your Personalized AI Roadmap
             </h3>
@@ -286,22 +288,22 @@ export default function ResultsPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
                 required
-                className="flex-1 px-4 py-3 rounded-lg text-gray-900 focus:ring-2 focus:ring-white focus:outline-none"
+                className="flex-1 px-4 py-3 rounded-lg bg-white text-gray-900 border border-gray-200 shadow-sm focus:ring-2 focus:ring-primary focus:outline-none"
               />
               <button
                 type="submit"
-                className="px-6 py-3 bg-white text-purple-600 rounded-lg font-semibold hover:shadow-lg transition-all duration-300"
+                className="px-6 py-3 bg-white text-primary rounded-lg font-semibold hover:shadow-lg transition-all duration-300"
               >
                 Get Report
               </button>
             </form>
-          </div>
+          </div> 
         )}
 
         {/* AI Recommendations */}
         {aiLoading && (
           <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-purple-600 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-primary mx-auto mb-4"></div>
             <p className="text-gray-600">Generating your personalized AI recommendations...</p>
           </div>
         )}
@@ -345,8 +347,8 @@ export default function ResultsPage() {
               <h3 className="text-2xl font-bold mb-6 text-gray-900">Week-by-Week Roadmap</h3>
               <div className="space-y-6">
                 {aiRecommendation.weeklyRoadmap.map((week, index) => (
-                  <div key={index} className="border-l-4 border-purple-600 pl-6">
-                    <h4 className="text-xl font-bold mb-3 text-purple-600">Week {week.week}</h4>
+                  <div key={index} className="border-l-4 border-primary pl-6">
+                    <h4 className="text-xl font-bold mb-3 text-primary">Week {week.week}</h4>
                     <ul className="space-y-2">
                       {week.tasks.map((task, taskIndex) => (
                         <li key={taskIndex} className="flex gap-3">
@@ -365,7 +367,7 @@ export default function ResultsPage() {
               <h3 className="text-2xl font-bold mb-6 text-gray-900">Recommended Resources</h3>
               <div className="space-y-4">
                 {aiRecommendation.resources.map((resource, index) => (
-                  <div key={index} className="p-4 bg-purple-50 rounded-lg">
+                  <div key={index} className="p-4 bg-primary-10 rounded-lg">
                     <h4 className="font-bold text-gray-900 mb-2">{resource.title}</h4>
                     <p className="text-gray-700">{resource.description}</p>
                   </div>
@@ -414,7 +416,7 @@ export default function ResultsPage() {
         </div>
 
         {/* CTA */}
-        <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl shadow-xl p-8 text-white text-center">
+        <div className="bg-primary rounded-2xl shadow-xl p-8 text-white text-center">
           <h3 className="text-3xl font-bold mb-4">Ready to Accelerate Your Journey?</h3>
           <p className="text-lg mb-6 opacity-90">
             Get 1-on-1 expert guidance to turn your idea into reality

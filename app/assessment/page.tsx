@@ -116,7 +116,7 @@ export default function AssessmentPage() {
 
   if (showProfileForm) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center px-4 py-12">
+      <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
         <div className="max-w-lg w-full">
           <div className="mb-4">
             <button
@@ -130,11 +130,11 @@ export default function AssessmentPage() {
           {/* Header */}
           <div className="text-center mb-8 animate-fade-in">
             <div className="inline-block p-3 bg-white rounded-2xl shadow-lg mb-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center">
+              <div className="w-16 h-16 bg-primary rounded-xl flex items-center justify-center">
                 <FiCheck className="text-3xl text-white" />
               </div>
             </div>
-            <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            <h1 className="text-4xl font-bold mb-3 text-heading">
               Let's Get Started
             </h1>
             <p className="text-lg text-gray-600 max-w-md mx-auto">
@@ -208,7 +208,7 @@ export default function AssessmentPage() {
               <div className="pt-4 space-y-3">
                 <button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-2"
+                  className="w-full btn btn-primary py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2"
                 >
                   Start Assessment
                   <FiArrowRight className="text-xl" />
@@ -220,7 +220,7 @@ export default function AssessmentPage() {
                     setShowProfileForm(false);
                     analytics.assessmentStarted();
                   }}
-                  className="w-full text-gray-500 py-3 text-sm font-medium hover:text-purple-600 transition-colors"
+                  className="w-full text-gray-500 py-3 text-sm font-medium hover:text-primary transition-colors"
                 >
                   Skip and start now →
                 </button>
@@ -243,7 +243,7 @@ export default function AssessmentPage() {
   const progress = ((currentQuestion + 1) / questions.length) * 100;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 py-8 px-4">
+    <div className="min-h-screen bg-background py-8 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-4">
           <button
@@ -307,7 +307,7 @@ export default function AssessmentPage() {
             isTransitioning ? 'opacity-0 transform scale-95' : 'opacity-100 transform scale-100'
           }`}
         >
-          <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 px-8 py-6">
+          <div className="bg-primary px-8 py-6 text-white">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center text-white font-bold text-xl">
                 {currentQuestion + 1}
@@ -343,8 +343,8 @@ export default function AssessmentPage() {
                       <div
                         className={`p-5 border-2 rounded-2xl transition-all duration-300 ${
                           currentAnswer === option.value
-                            ? 'border-purple-500 bg-gradient-to-r from-purple-50 to-blue-50 shadow-lg scale-[1.02]'
-                            : 'border-gray-200 bg-white hover:border-purple-300 hover:shadow-md'
+                            ? 'border-primary bg-primary-10 shadow-lg scale-[1.02]'
+                            : 'border-gray-200 bg-white hover:border-primary hover:shadow-md'
                         }`}
                       >
                         <div className="flex items-start gap-4">
@@ -390,7 +390,7 @@ export default function AssessmentPage() {
 
               {/* Follow-up Question */}
               {showFollowUp && question.followUpPrompt && (
-                <div className="mt-6 p-6 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border-2 border-amber-200 animate-fade-in">
+                <div className="mt-6 p-6 bg-primary-10 rounded-2xl border-2 border-primary animate-fade-in">
                   <label className="block text-sm font-bold text-amber-900 mb-3 flex items-center gap-2">
                     <span className="w-6 h-6 bg-amber-500 text-white rounded-full flex items-center justify-center text-xs">
                       ?
@@ -428,10 +428,8 @@ export default function AssessmentPage() {
           <button
             onClick={handleNext}
             disabled={!currentAnswer}
-            className={`group flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 ${
-              currentAnswer
-                ? 'bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 text-white shadow-xl hover:shadow-2xl transform hover:scale-105'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+            className={`group btn btn-primary flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-lg ${
+              !currentAnswer ? 'opacity-60 cursor-not-allowed' : ''
             }`}
           >
             {currentQuestion === questions.length - 1 ? 'See Results' : 'Next Question'}

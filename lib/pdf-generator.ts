@@ -7,7 +7,7 @@ export function generatePDFReport(result: AssessmentResult): jsPDF {
   const { scoreResult, dimensionScores, aiRecommendation, userProfile } = result;
 
   // Brand Colors
-  const brandPurple = [124, 58, 237];
+  const brandPurple = [36, 94, 166];
   const brandBlue = [59, 130, 246];
   const brandGreen = [34, 197, 94];
   const brandOrange = [249, 115, 22];

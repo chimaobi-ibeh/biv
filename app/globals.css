@@ -2,13 +2,15 @@
 @import "tailwindcss";
 
 :root{
-  --bg: #08101A;
-  --surface: #0F1720;
-  --primary: #D6A93D;
-  --secondary: #1F4B8A;
-  --text-heading: #F7F8FA;
-  --text-body: #A9B1BC;
-  --muted-border: rgba(255,255,255,0.04);
+  /* Clean, professional palette */
+  --bg: #FFFFFF; /* page background — white */
+  --surface: #F5F7FA; /* card / surface — very light gray */
+  --primary: #245EA6; /* restrained blue accent */
+  --primary-rgb: 36,94,166; /* for subtle tints */
+  --secondary: #204E7A; /* darker accent */
+  --text-heading: #0F1720; /* dark charcoal */
+  --text-body: #374151; /* muted body text */
+  --muted-border: rgba(15,23,34,0.06);
   --radius: 10px;
   --space: 8px;
   /* compatibility with existing vars */
@@ -61,7 +63,7 @@ body {
     color: var(--text-heading);
     box-shadow: 0 1px 0 rgba(0,0,0,0.04);
   }
-  .btn-primary:hover { transform: translateY(-1px); filter: brightness(1.06); }
+  .btn-primary:hover { transform: translateY(-1px); filter: brightness(1.02); }
   .btn-primary:active { transform: translateY(0); }
 
   .btn-secondary {
@@ -70,6 +72,18 @@ body {
     border: 1px solid var(--muted-border);
   }
   .btn-secondary:hover { transform: translateY(-1px); }
+
+  /* Brand utilities */
+  .bg-primary { background: var(--primary); }
+  .bg-primary-10 { background: rgba(var(--primary-rgb), 0.08); }
+  .text-primary { color: var(--primary); }
+  .border-primary { border-color: var(--primary); }
+  .text-heading { color: var(--text-heading); }
+  .text-body { color: var(--text-body); }
+
+  /* Focus ring using primary at low opacity */
+  .focus-ring-primary:focus { box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.08); outline: none; }
+
 
   /* Cards */
   .card {
