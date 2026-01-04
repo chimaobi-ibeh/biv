@@ -6,9 +6,11 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABAS
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: any
 ) {
-  const { id } = params;
+  // context.params may be a Promise in some Next.js versions, so be defensive
+  const params = (context?.params && typeof context.params.then === 'function') ? await context.params : context?.params;
+  const { id } = params || {};
 
   if (!supabaseUrl || !supabaseKey) {
     return NextResponse.json({ error: 'Supabase not configured' }, { status: 501 });

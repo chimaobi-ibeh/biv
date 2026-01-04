@@ -53,7 +53,7 @@ export const analytics = {
 
   assessmentStarted: () => trackEvent('assessment_started'),
 
-  questionAnswered: (questionId: number, questionNumber: number) =>
+  questionAnswered: (questionId: string | number, questionNumber: number) =>
     trackEvent('question_answered', { questionId, questionNumber }),
 
   assessmentCompleted: (score: number, level: string) =>
