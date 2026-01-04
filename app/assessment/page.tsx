@@ -2,10 +2,47 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { questions } from '@/lib/questions';
-import { AssessmentResponse, UserProfile } from '@/types';
+import { UserProfile } from '@/types';
 import { analytics } from '@/lib/analytics';
 import { FiArrowRight, FiArrowLeft, FiCheck, FiUser, FiMail, FiBriefcase, FiMapPin } from 'react-icons/fi';
+
+interface AssessmentResponse {
+  questionId: string;
+  answer: string;
+  followUpAnswer?: string;
+}
+
+interface Question {
+  id: string;
+  title: string;
+  subtitle?: string;
+  type: 'radio' | 'text';
+  options?: { value: string; label: string }[];
+  placeholder?: string;
+  followUpPrompt?: string;
+  followUpCondition?: (value: string) => boolean;
+}
+
+const questions: Question[] = [
+  {
+    id: 'q1',
+    title: 'What is your business idea about?',
+    type: 'text',
+    placeholder: 'Describe your business idea...',
+  },
+  {
+    id: 'q2',
+    title: 'Who is your target market?',
+    type: 'text',
+    placeholder: 'Describe your target audience...',
+  },
+  {
+    id: 'q3',
+    title: 'What problem does your idea solve?',
+    type: 'text',
+    placeholder: 'Explain the problem you are solving...',
+  },
+];
 
 export default function AssessmentPage() {
   const router = useRouter();
@@ -15,8 +52,8 @@ export default function AssessmentPage() {
   const [currentFollowUp, setCurrentFollowUp] = useState('');
   const [showFollowUp, setShowFollowUp] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile>({});
-  const [showProfileForm, setShowProfileForm] = useState(true);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [showProfileForm, setShowProfileForm] = useState(true);
 
   useEffect(() => {
     analytics.pageView('assessment');
@@ -30,8 +67,11 @@ export default function AssessmentPage() {
 
   const handleProfileSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setShowProfileForm(false);
+    // persist profile for questions page
+    try { sessionStorage.setItem('assessment_profile', JSON.stringify(userProfile)); } catch (e) {}
     analytics.assessmentStarted();
+    // navigate to the questions page
+    router.push('/assessment/questions');
   };
 
   const handleAnswer = (value: string) => {
@@ -114,125 +154,47 @@ export default function AssessmentPage() {
     }
   };
 
+  // Show pre-assessment profile as its own page — keeps form single-screen on mobile
   if (showProfileForm) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
-        <div className="max-w-lg w-full">
+      <div className="min-h-screen bg-background flex items-center justify-center px-4 py-6">
+        <div className="max-w-md w-full">
           <div className="mb-4">
-            <button
-              onClick={() => router.push('/')}
-              className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-purple-600 font-medium"
-            >
-              <FiArrowLeft />
-              Back to Home
+            <button onClick={() => router.push('/')} className="inline-flex items-center gap-2 text-sm font-medium text-primary bg-white border border-gray-200 px-3 py-2 rounded-lg shadow-sm transition transform duration-150 hover:-translate-y-1 hover:shadow-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/30">
+              <FiArrowLeft /> Back to Home
             </button>
           </div>
-          {/* Header */}
-          <div className="text-center mb-8 animate-fade-in">
-            <div className="inline-block p-3 bg-white rounded-2xl shadow-lg mb-4">
-              <div className="w-16 h-16 bg-primary rounded-xl flex items-center justify-center">
-                <FiCheck className="text-3xl text-white" />
+
+          <div className="bg-white rounded-3xl shadow-2xl p-6 border border-gray-100">
+            <div className="text-center mb-4">
+              <div className="inline-block p-2 bg-white rounded-2xl shadow mb-3">
+                <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
+                  <FiCheck className="text-2xl text-white" />
+                </div>
               </div>
+              <h1 className="text-2xl font-bold mb-1 text-heading">Let's Get Started</h1>
+              <p className="text-sm text-gray-600 mb-1">Tell us a bit about yourself to get personalized insights (optional)</p>
             </div>
-            <h1 className="text-4xl font-bold mb-3 text-heading">
-              Let's Get Started
-            </h1>
-            <p className="text-lg text-gray-600 max-w-md mx-auto">
-              Tell us a bit about yourself to get personalized insights (optional)
-            </p>
-          </div>
 
-          {/* Form Card */}
-          <div className="bg-white rounded-3xl shadow-2xl p-8 border border-gray-100">
-            <form onSubmit={handleProfileSubmit} className="space-y-5">
-              <div className="group">
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                  <FiUser className="text-purple-600" />
-                  Name
-                  <span className="text-xs font-normal text-gray-400">(Optional)</span>
-                </label>
-                <input
-                  type="text"
-                  value={userProfile.name || ''}
-                  onChange={(e) => setUserProfile({ ...userProfile, name: e.target.value })}
-                  className="w-full px-5 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200 group-hover:border-purple-300"
-                  placeholder="Your name"
-                />
+            <form onSubmit={handleProfileSubmit} className="space-y-3">
+              <div className="grid grid-cols-1 gap-3">
+                <input type="text" value={userProfile.name || ''} onChange={(e) => setUserProfile({ ...userProfile, name: e.target.value })} placeholder="Name (optional)" className="w-full px-3 py-2 border rounded-xl border-gray-200 focus:ring-2 focus:ring-purple-500" />
+                <input type="email" value={userProfile.email || ''} onChange={(e) => setUserProfile({ ...userProfile, email: e.target.value })} placeholder="Email (optional)" className="w-full px-3 py-2 border rounded-xl border-gray-200 focus:ring-2 focus:ring-blue-500" />
+                <div className="grid grid-cols-2 gap-3">
+                  <input type="text" value={userProfile.industry || ''} onChange={(e) => setUserProfile({ ...userProfile, industry: e.target.value })} placeholder="Industry" className="w-full px-3 py-2 border rounded-xl border-gray-200 focus:ring-2 focus:ring-indigo-500" />
+                  <input type="text" value={userProfile.location || ''} onChange={(e) => setUserProfile({ ...userProfile, location: e.target.value })} placeholder="Location" className="w-full px-3 py-2 border rounded-xl border-gray-200 focus:ring-2 focus:ring-pink-500" />
+                </div>
               </div>
 
-              <div className="group">
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                  <FiMail className="text-blue-600" />
-                  Email
-                  <span className="text-xs font-normal text-gray-400">(Optional)</span>
-                </label>
-                <input
-                  type="email"
-                  value={userProfile.email || ''}
-                  onChange={(e) => setUserProfile({ ...userProfile, email: e.target.value })}
-                  className="w-full px-5 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 group-hover:border-blue-300"
-                  placeholder="your@email.com"
-                />
-              </div>
-
-              <div className="group">
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                  <FiBriefcase className="text-indigo-600" />
-                  Industry
-                  <span className="text-xs font-normal text-gray-400">(Optional)</span>
-                </label>
-                <input
-                  type="text"
-                  value={userProfile.industry || ''}
-                  onChange={(e) => setUserProfile({ ...userProfile, industry: e.target.value })}
-                  className="w-full px-5 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 group-hover:border-indigo-300"
-                  placeholder="e.g., E-commerce, SaaS, Consulting"
-                />
-              </div>
-
-              <div className="group">
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                  <FiMapPin className="text-pink-600" />
-                  Location
-                  <span className="text-xs font-normal text-gray-400">(Optional)</span>
-                </label>
-                <input
-                  type="text"
-                  value={userProfile.location || ''}
-                  onChange={(e) => setUserProfile({ ...userProfile, location: e.target.value })}
-                  className="w-full px-5 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-all duration-200 group-hover:border-pink-300"
-                  placeholder="e.g., Lagos, Nigeria"
-                />
-              </div>
-
-              <div className="pt-4 space-y-3">
-                <button
-                  type="submit"
-                  className="w-full btn btn-primary py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2"
-                >
-                  Start Assessment
-                  <FiArrowRight className="text-xl" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowProfileForm(false);
-                    analytics.assessmentStarted();
-                  }}
-                  className="w-full text-gray-500 py-3 text-sm font-medium hover:text-primary transition-colors"
-                >
-                  Skip and start now →
-                </button>
+              <div className="pt-3 flex flex-col gap-2">
+                <button type="submit" className="w-full btn btn-primary py-3 rounded-xl font-bold">Start Assessment</button>
+                <button type="button" onClick={() => { try { sessionStorage.setItem('assessment_profile', JSON.stringify(userProfile)); } catch (e) {} analytics.assessmentStarted(); router.push('/assessment/questions');}} className="w-full text-gray-500 py-2 text-sm font-medium interactive-text hover:text-primary transition-colors">Skip and start now →</button>
               </div>
             </form>
           </div>
 
-          {/* Trust Indicators */}
-          <div className="mt-8 text-center">
-            <p className="text-sm text-gray-500">
-              🔒 Your information is secure and never shared
-            </p>
+          <div className="mt-4 text-center hidden sm:block">
+            <p className="text-xs text-gray-500">🔒 Your information is secure and never shared</p>
           </div>
         </div>
       </div>
@@ -248,12 +210,16 @@ export default function AssessmentPage() {
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => router.push('/')}
-            className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-purple-600 font-medium"
+            aria-label="Back to home"
+            className="inline-flex items-center gap-2 text-sm font-medium text-primary bg-white border border-gray-200 px-3 py-2 rounded-lg shadow-sm hover:bg-primary hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30"
           >
             <FiArrowLeft />
-            Back to Home
+            Home
           </button>
         </div>
+
+
+
         {/* Header with Progress */}
         <div className="mb-8">
           {/* Step Indicators */}

@@ -423,7 +423,7 @@ export default function ResultsPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="https://calendly.com/beamx-solutions"
+              href="https://calendly.com/beamxsolutions"
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => analytics.ctaClicked('book_consultation', 'results')}

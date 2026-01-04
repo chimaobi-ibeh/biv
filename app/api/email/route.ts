@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { createClient } from '@supabase/supabase-js';
 import { AssessmentResult } from '@/types';
 
 const resend = new Resend(process.env.RESEND_API_KEY || 're_placeholder');
+
+// Supabase configuration (server-side service role key recommended)
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null; // may be null in local/dev without env vars
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,6 +17,37 @@ export async function POST(request: NextRequest) {
     if (!process.env.RESEND_API_KEY) {
       console.warn('Email service not configured - skipping email');
       return NextResponse.json({ success: true, message: 'Email service not configured' });
+    }
+
+    // Save submission to Supabase (if configured)
+    // Table schema suggestion:
+    // CREATE TABLE startup_validator (
+    //   id text PRIMARY KEY,
+    //   email text,
+    //   name text,
+    //   result jsonb,
+    //   type text,
+    //   created_at timestamptz DEFAULT now()
+    // );
+    if (supabase) {
+      try {
+        const insertPayload = {
+          id: result.id,
+          email,
+          name,
+          type,
+          result,
+        };
+
+        const { error: dbError } = await supabase.from('startup_validator').insert(insertPayload);
+        if (dbError) {
+          console.warn('Supabase insert error:', dbError);
+        }
+      } catch (err) {
+        console.warn('Supabase insert failed:', err);
+      }
+    } else {
+      console.warn('Supabase not configured - skipping save');
     }
 
     if (type === 'capture') {

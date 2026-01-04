@@ -49,26 +49,13 @@ export default function Home() {
 
               <a
                 href="#how-it-works"
-                className="bg-white text-primary px-8 py-4 rounded-lg text-lg font-semibold border-2 border-primary hover:bg-primary-10 transition-all duration-300"
+                className="btn-see group"
               >
-                See How It Works
+                See How It Works <span className="arrow inline-block ml-2">→</span>
               </a>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-8 text-sm text-gray-600">
-              <div className="flex items-center gap-2">
-                <FiCheckCircle className="text-green-500" />
-                <span>No signup required</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <FiCheckCircle className="text-green-500" />
-                <span>1,000+ ideas validated</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <FiCheckCircle className="text-green-500" />
-                <span>AI-powered insights</span>
-              </div>
-            </div>
+
           </div>
         </div>
       </section>

@@ -73,6 +73,61 @@ body {
   }
   .btn-secondary:hover { transform: translateY(-1px); }
 
+  /* Hover lift utility for clickable items */
+  .hover-lift {
+    transition: transform 160ms ease, box-shadow 160ms ease;
+  }
+  .hover-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(var(--primary-rgb), 0.06);
+  }
+  .hover-lift:active { transform: translateY(0); box-shadow: none; }
+
+  /* Interactive text (e.g., small skip links) */
+  .interactive-text { display: inline-block; transition: transform 180ms cubic-bezier(.2,.8,.2,1), color 160ms ease; }
+  .interactive-text:hover { transform: translateX(6px); color: var(--primary); }
+
+  /* Apply a subtle lift to all interactive controls */
+  button, .btn, .btn-see, .btn-secondary, a[role="button"] {
+    transition: transform 160ms ease, box-shadow 160ms ease;
+  }
+  button:hover, .btn:hover, .btn-see:hover, .btn-secondary:hover, a[role="button"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(var(--primary-rgb), 0.06);
+  }
+  button:active, .btn:active { transform: translateY(0); box-shadow: none; }
+
+  /* See How It Works button */
+  .btn-see {
+    @apply inline-flex items-center justify-center font-medium select-none transition-transform duration-300 ease-out;
+    padding: 0.6rem 1rem;
+    border-radius: var(--radius);
+    background: var(--background);
+    color: var(--primary);
+    border: 2px solid var(--primary);
+    -webkit-tap-highlight-color: transparent;
+    transform: translateY(0);
+    transition: transform 200ms ease, box-shadow 200ms ease, background 200ms ease, color 200ms ease;
+  }
+
+  .btn-see:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(var(--primary-rgb), 0.08);
+    background: rgba(var(--primary-rgb), 0.06);
+    color: var(--primary);
+  }
+
+  .btn-see .arrow {
+    transition: transform 220ms cubic-bezier(.2,.8,.2,1), opacity 160ms ease;
+    display: inline-block;
+    transform-origin: center;
+  }
+
+  .btn-see:hover .arrow {
+    transform: translateX(6px) rotate(-8deg) scale(1.06);
+    opacity: 1;
+  }
+
   /* Brand utilities */
   .bg-primary { background: var(--primary); }
   .bg-primary-10 { background: rgba(var(--primary-rgb), 0.08); }
