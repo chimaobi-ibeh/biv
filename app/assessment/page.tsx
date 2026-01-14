@@ -2,47 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { UserProfile } from '@/types';
+import { UserProfile, AssessmentResponse } from '@/types';
 import { analytics } from '@/lib/analytics';
+import { supabase } from '@/lib/supabase';
+import { questions } from '@/lib/questions';
 import { FiArrowRight, FiArrowLeft, FiCheck, FiUser, FiMail, FiBriefcase, FiMapPin } from 'react-icons/fi';
-
-interface AssessmentResponse {
-  questionId: string;
-  answer: string;
-  followUpAnswer?: string;
-}
-
-interface Question {
-  id: string;
-  title: string;
-  subtitle?: string;
-  type: 'radio' | 'text';
-  options?: { value: string; label: string }[];
-  placeholder?: string;
-  followUpPrompt?: string;
-  followUpCondition?: (value: string) => boolean;
-}
-
-const questions: Question[] = [
-  {
-    id: 'q1',
-    title: 'What is your business idea about?',
-    type: 'text',
-    placeholder: 'Describe your business idea...',
-  },
-  {
-    id: 'q2',
-    title: 'Who is your target market?',
-    type: 'text',
-    placeholder: 'Describe your target audience...',
-  },
-  {
-    id: 'q3',
-    title: 'What problem does your idea solve?',
-    type: 'text',
-    placeholder: 'Explain the problem you are solving...',
-  },
-];
 
 export default function AssessmentPage() {
   const router = useRouter();
@@ -54,6 +18,8 @@ export default function AssessmentPage() {
   const [userProfile, setUserProfile] = useState<UserProfile>({});
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showProfileForm, setShowProfileForm] = useState(true);
+  const [formError, setFormError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     analytics.pageView('assessment');
@@ -65,13 +31,68 @@ export default function AssessmentPage() {
     }
   }, [currentQuestion]);
 
-  const handleProfileSubmit = (e: React.FormEvent) => {
+  const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // persist profile for questions page
-    try { sessionStorage.setItem('assessment_profile', JSON.stringify(userProfile)); } catch (e) {}
-    analytics.assessmentStarted();
-    // navigate to the questions page
-    router.push('/assessment/questions');
+    setFormError('');
+
+    // Validate that ALL fields are provided (making form mandatory)
+    if (!userProfile.name || !userProfile.email || !userProfile.industry || !userProfile.location) {
+      setFormError('All fields are required to continue');
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(userProfile.email)) {
+      setFormError('Please enter a valid email address');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Save user profile to Supabase
+      const { data, error } = await supabase
+        .from('business_idea_assessments')
+        .insert([
+          {
+            name: userProfile.name,
+            email: userProfile.email,
+            industry: userProfile.industry,
+            location: userProfile.location,
+            responses: [],
+            created_at: new Date().toISOString(),
+          }
+        ])
+        .select();
+
+      if (error) {
+        console.error('Supabase error:', error);
+        setFormError('Failed to save information. Please try again.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Store assessment ID for later use
+      if (data && data[0]) {
+        sessionStorage.setItem('assessmentId', data[0].id);
+      }
+
+      // persist profile for questions page
+      try {
+        sessionStorage.setItem('assessment_profile', JSON.stringify(userProfile));
+      } catch (e) {
+        console.error('Session storage error:', e);
+      }
+
+      analytics.assessmentStarted();
+      setShowProfileForm(false);
+      setIsSubmitting(false);
+    } catch (error) {
+      console.error('Error:', error);
+      setFormError('An unexpected error occurred. Please try again.');
+      setIsSubmitting(false);
+    }
   };
 
   const handleAnswer = (value: string) => {
@@ -86,7 +107,7 @@ export default function AssessmentPage() {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     const question = questions[currentQuestion];
 
     if (!currentAnswer) {
@@ -110,7 +131,7 @@ export default function AssessmentPage() {
     const updatedResponses = [...responses, newResponse];
     setResponses(updatedResponses);
 
-    setTimeout(() => {
+    setTimeout(async () => {
       if (currentQuestion < questions.length - 1) {
         setCurrentQuestion(currentQuestion + 1);
         setCurrentAnswer('');
@@ -128,6 +149,22 @@ export default function AssessmentPage() {
           timestamp: new Date().toISOString(),
         };
         sessionStorage.setItem('assessment_data', JSON.stringify(assessmentData));
+
+        // Save all responses to Supabase
+        try {
+          const assessmentId = sessionStorage.getItem('assessmentId');
+          if (assessmentId) {
+            await supabase
+              .from('business_idea_assessments')
+              .update({
+                responses: updatedResponses,
+                completed_at: new Date().toISOString(),
+              })
+              .eq('id', assessmentId);
+          }
+        } catch (error) {
+          console.error('Error saving responses to Supabase:', error);
+        }
 
         router.push('/results');
       }
@@ -173,27 +210,74 @@ export default function AssessmentPage() {
                 </div>
               </div>
               <h1 className="text-2xl font-bold mb-1 text-heading">Let's Get Started</h1>
-              <p className="text-sm text-gray-600 mb-1">Tell us a bit about yourself to get personalized insights (optional)</p>
+              <p className="text-sm text-gray-600 mb-1">Complete all fields to get personalized insights</p>
             </div>
 
             <form onSubmit={handleProfileSubmit} className="space-y-3">
               <div className="grid grid-cols-1 gap-3">
-                <input type="text" value={userProfile.name || ''} onChange={(e) => setUserProfile({ ...userProfile, name: e.target.value })} placeholder="Name (optional)" className="w-full px-3 py-2 border rounded-xl border-gray-200 focus:ring-2 focus:ring-purple-500" />
-                <input type="email" value={userProfile.email || ''} onChange={(e) => setUserProfile({ ...userProfile, email: e.target.value })} placeholder="Email (optional)" className="w-full px-3 py-2 border rounded-xl border-gray-200 focus:ring-2 focus:ring-blue-500" />
+                <div>
+                  <input 
+                    type="text" 
+                    value={userProfile.name || ''} 
+                    onChange={(e) => setUserProfile({ ...userProfile, name: e.target.value })} 
+                    placeholder="Name *" 
+                    className="w-full px-3 py-2 border rounded-xl border-gray-200 focus:ring-2 focus:ring-purple-500" 
+                    required
+                  />
+                </div>
+                <div>
+                  <input 
+                    type="email" 
+                    value={userProfile.email || ''} 
+                    onChange={(e) => setUserProfile({ ...userProfile, email: e.target.value })} 
+                    placeholder="Email *" 
+                    className="w-full px-3 py-2 border rounded-xl border-gray-200 focus:ring-2 focus:ring-blue-500" 
+                    required
+                  />
+                </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <input type="text" value={userProfile.industry || ''} onChange={(e) => setUserProfile({ ...userProfile, industry: e.target.value })} placeholder="Industry" className="w-full px-3 py-2 border rounded-xl border-gray-200 focus:ring-2 focus:ring-indigo-500" />
-                  <input type="text" value={userProfile.location || ''} onChange={(e) => setUserProfile({ ...userProfile, location: e.target.value })} placeholder="Location" className="w-full px-3 py-2 border rounded-xl border-gray-200 focus:ring-2 focus:ring-pink-500" />
+                  <input 
+                    type="text" 
+                    value={userProfile.industry || ''} 
+                    onChange={(e) => setUserProfile({ ...userProfile, industry: e.target.value })} 
+                    placeholder="Industry *" 
+                    className="w-full px-3 py-2 border rounded-xl border-gray-200 focus:ring-2 focus:ring-indigo-500" 
+                    required
+                  />
+                  <input 
+                    type="text" 
+                    value={userProfile.location || ''} 
+                    onChange={(e) => setUserProfile({ ...userProfile, location: e.target.value })} 
+                    placeholder="Location *" 
+                    className="w-full px-3 py-2 border rounded-xl border-gray-200 focus:ring-2 focus:ring-pink-500" 
+                    required
+                  />
                 </div>
               </div>
 
+              {formError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+                  {formError}
+                </div>
+              )}
+
               <div className="pt-3 flex flex-col gap-2">
-                <button type="submit" className="w-full btn btn-primary py-3 rounded-xl font-bold">Start Assessment</button>
-                <button type="button" onClick={() => { try { sessionStorage.setItem('assessment_profile', JSON.stringify(userProfile)); } catch (e) {} analytics.assessmentStarted(); router.push('/assessment/questions');}} className="w-full text-gray-500 py-2 text-sm font-medium interactive-text hover:text-primary transition-colors">Skip and start now →</button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="w-full btn btn-primary py-3 rounded-xl font-bold disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? 'Starting Assessment...' : 'Start Assessment'}
+                </button>
               </div>
+
+              <p className="text-xs text-gray-500 text-center mt-2">
+                <span className="text-red-500">*</span> Required fields
+              </p>
             </form>
           </div>
 
-          <div className="mt-4 text-center hidden sm:block">
+          <div className="mt-4 text-center">
             <p className="text-xs text-gray-500">🔒 Your information is secure and never shared</p>
           </div>
         </div>
@@ -211,14 +295,12 @@ export default function AssessmentPage() {
           <button
             onClick={() => router.push('/')}
             aria-label="Back to home"
-            className="inline-flex items-center gap-2 text-sm font-medium text-primary bg-white border border-gray-200 px-3 py-2 rounded-lg shadow-sm hover:bg-primary hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className="inline-flex items-center gap-2 text-sm font-medium text-primary bg-white border border-gray-200 px-3 py-2 rounded-lg shadow-sm transition transform duration-150 hover:-translate-y-1 hover:shadow-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/30"
           >
             <FiArrowLeft />
             Home
           </button>
         </div>
-
-
 
         {/* Header with Progress */}
         <div className="mb-8">

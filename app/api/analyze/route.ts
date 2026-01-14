@@ -10,18 +10,30 @@ export async function POST(request: NextRequest) {
   try {
     const { responses, userProfile, scoreLevel, totalPositive } = await request.json();
 
+    console.log('=== API /analyze called ===');
+    console.log('Responses count:', responses?.length);
+    console.log('User profile:', userProfile);
+    console.log('Score level:', scoreLevel);
+    console.log('Total positive:', totalPositive);
+
     if (!process.env.ANTHROPIC_API_KEY) {
+      console.error('ANTHROPIC_API_KEY is not set!');
       return NextResponse.json(
-        { error: 'AI service not configured' },
+        { error: 'AI service not configured - missing API key' },
         { status: 500 }
       );
     }
 
-    const prompt = buildAnalysisPrompt(responses, userProfile, scoreLevel, totalPositive);
+    console.log('API Key exists:', process.env.ANTHROPIC_API_KEY ? 'Yes' : 'No');
+    console.log('API Key starts with:', process.env.ANTHROPIC_API_KEY.substring(0, 15));
 
+    const prompt = buildAnalysisPrompt(responses, userProfile, scoreLevel, totalPositive);
+    console.log('Prompt built, length:', prompt.length);
+
+    console.log('Calling Claude API...');
     const message = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 2000,
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 4096,
       messages: [
         {
           role: 'user',
@@ -30,18 +42,30 @@ export async function POST(request: NextRequest) {
       ],
     });
 
+    console.log('Claude API response received');
     const content = message.content[0];
     if (content.type !== 'text') {
       throw new Error('Unexpected response type from Claude');
     }
 
+    console.log('Parsing AI response...');
     const recommendation = parseAIResponse(content.text);
+    console.log('Recommendation parsed successfully');
 
     return NextResponse.json({ recommendation });
-  } catch (error) {
-    console.error('Analysis error:', error);
+  } catch (error: any) {
+    console.error('=== Analysis error ===');
+    console.error('Error type:', error.constructor.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Full error:', JSON.stringify(error, null, 2));
+
     return NextResponse.json(
-      { error: 'Failed to generate personalized recommendations' },
+      {
+        error: 'Failed to generate personalized recommendations',
+        details: error.message,
+        type: error.constructor.name
+      },
       { status: 500 }
     );
   }
