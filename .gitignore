@@ -34,6 +34,11 @@ yarn-error.log*
 .env*
 !.env.example
 
+# Documentation with sensitive info
+VERCEL_SETUP.md
+DEPLOYMENT.md
+FAVICON_SETUP.md
+
 # vercel
 .vercel
 
