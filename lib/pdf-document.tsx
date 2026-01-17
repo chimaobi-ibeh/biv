@@ -610,7 +610,7 @@ export const PDFDocument: React.FC<PDFDocumentProps> = ({ result }) => {
 
         <View style={styles.pageFooter}>
           <Text style={styles.pageFooterText}>Business Assessment Report</Text>
-          <Text style={styles.pageFooterText}>Copyright © 2025 BeamXSolutions</Text>
+          <Text style={styles.pageFooterText}>Copyright © 2026 BeamXSolutions</Text>
         </View>
       </Page>
 
@@ -648,7 +648,7 @@ export const PDFDocument: React.FC<PDFDocumentProps> = ({ result }) => {
 
             <View style={styles.pageFooter}>
               <Text style={styles.pageFooterText}>Business Assessment Report</Text>
-              <Text style={styles.pageFooterText}>Copyright © 2025 BeamXSolutions</Text>
+              <Text style={styles.pageFooterText}>Copyright © 2026 BeamXSolutions</Text>
             </View>
           </Page>
 
@@ -678,7 +678,7 @@ export const PDFDocument: React.FC<PDFDocumentProps> = ({ result }) => {
 
             <View style={styles.pageFooter}>
               <Text style={styles.pageFooterText}>Business Assessment Report</Text>
-              <Text style={styles.pageFooterText}>Copyright © 2025 BeamXSolutions</Text>
+              <Text style={styles.pageFooterText}>Copyright © 2026 BeamXSolutions</Text>
             </View>
           </Page>
         </>
@@ -707,7 +707,7 @@ export const PDFDocument: React.FC<PDFDocumentProps> = ({ result }) => {
         </View>
 
         <View style={styles.ctaFooter}>
-          <Text style={styles.ctaFooterText}>© 2025 BeamX Solutions. All rights reserved.</Text>
+          <Text style={styles.ctaFooterText}>© 2026 BeamX Solutions. All rights reserved.</Text>
         </View>
       </Page>
     </Document>

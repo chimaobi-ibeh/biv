@@ -278,7 +278,12 @@ export default function AssessmentPage() {
           </div>
 
           <div className="mt-4 text-center">
-            <p className="text-xs text-gray-500">🔒 Your information is secure and never shared</p>
+            <p className="text-xs text-gray-500">
+              🔒 Your information is secure and never shared.{' '}
+              <a href="/privacy" className="text-primary hover:underline">
+                Privacy Policy
+              </a>
+            </p>
           </div>
         </div>
       </div>

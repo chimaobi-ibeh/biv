@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(npm install:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(git commit:*)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(copy /Y \"public\\\\favicon.ico\" \"app\\\\favicon.ico\")",
+      "Bash(copy /Y:*)",
+      "Bash(copy /Y \"public\\\\apple-touch-icon.png\" \"app\\\\apple-icon.png\")"
     ]
   }
 }

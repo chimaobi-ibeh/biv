@@ -1,0 +1,29 @@
+VERCEL ENVIRONMENT VARIABLES SETUP
+===================================
+
+Go to: https://vercel.com/your-project/settings/environment-variables
+
+Add these variables (get values from your local .env file):
+
+1. NEXT_PUBLIC_SUPABASE_URL
+   Environment: Production, Preview, Development
+
+2. NEXT_PUBLIC_SUPABASE_ANON_KEY  
+   Environment: Production, Preview, Development
+
+3. ANTHROPIC_API_KEY
+   Environment: Production, Preview, Development
+
+4. RESEND_API_KEY
+   Environment: Production, Preview, Development
+
+5. FROM_EMAIL
+   Environment: Production, Preview, Development
+
+6. NEXT_PUBLIC_APP_URL
+   Value: https://your-vercel-url.vercel.app
+   Environment: Production, Preview, Development
+
+After adding all variables, trigger a redeploy in Vercel.
+
+IMPORTANT: Copy values from your .env file, NOT from this guide!

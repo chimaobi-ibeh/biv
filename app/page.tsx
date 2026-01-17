@@ -65,7 +65,7 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-3 gap-8 text-center">
             <div>
-              <div className="text-4xl font-bold text-primary mb-2">1,000+</div>
+              <div className="text-4xl font-bold text-primary mb-2">100+</div>
               <div className="text-gray-600">Ideas Validated</div>
             </div>
             <div>
@@ -189,7 +189,7 @@ export default function Home() {
             Ready to Validate Your Idea?
           </h2>
           <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-            Join 1,000+ entrepreneurs who got clarity on their business ideas
+            Join 100+ entrepreneurs who got clarity on their business ideas
           </p>
           <Link
             href="/assessment"

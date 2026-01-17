@@ -18,11 +18,16 @@ export const metadata: Metadata = {
   description: "Validate your startup idea with AI-powered insights and data-driven recommendations from BeamX Solutions.",
   icons: {
     icon: [
-      { url: '/icon.png', type: 'image/png', sizes: 'any' },
+      { url: '/favicon-16x16.png', type: 'image/png', sizes: '16x16' },
+      { url: '/favicon-32x32.png', type: 'image/png', sizes: '32x32' },
       { url: '/favicon.ico', sizes: '32x32' },
     ],
-    apple: '/apple-icon.png',
+    apple: '/apple-touch-icon.png',
     shortcut: '/favicon.ico',
+    other: [
+      { rel: 'icon', url: '/android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
+      { rel: 'icon', url: '/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' },
+    ],
   },
   openGraph: {
     title: 'BeamX Solutions - Business Idea Validator',

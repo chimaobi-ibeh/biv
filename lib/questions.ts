@@ -9,27 +9,27 @@ export const questions: Question[] = [
     options: [
       {
         value: 'all-three',
-        label: 'Yes - A product/service to sell, people willing to pay, and a way to get paid',
+        label: 'I have a product/service to sell, people willing to pay, and means to receive payment.',
         isPositive: true,
       },
       {
         value: 'missing-product',
-        label: 'Missing: A clear product or service',
+        label: 'I don\'t have a clear product or service',
         isPositive: false,
       },
       {
         value: 'missing-customers',
-        label: 'Missing: People willing to pay',
+        label: 'I don\'t have people willing to pay for my product or service',
         isPositive: false,
       },
       {
         value: 'missing-payment',
-        label: 'Missing: A way to get paid',
+        label: 'I have not set up bank accounts/payment gateways to receive money',
         isPositive: false,
       },
       {
         value: 'missing-multiple',
-        label: 'Missing multiple elements',
+        label: 'I am missing multiple elements',
         isPositive: false,
       },
     ],
