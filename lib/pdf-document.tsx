@@ -5,24 +5,17 @@ import {
   Text,
   View,
   StyleSheet,
-  Font,
   Image,
 } from '@react-pdf/renderer';
 import { AssessmentResult } from '@/types';
 
-// Register fonts for better typography
-Font.register({
-  family: 'Helvetica',
-  fonts: [
-    { src: 'Helvetica', fontWeight: 400 },
-    { src: 'Helvetica-Bold', fontWeight: 700 },
-  ],
-});
+// Logo URL - use logo-white for dark backgrounds
+const LOGO_WHITE_URL = 'https://stellar.beamxsolutions.com/logo-white.png';
 
 // DESIGN SYSTEM - Professional Color Palette
 const COLORS = {
-  primary: '#0066CC', // Professional Blue
-  secondary: '#FF8C00', // Orange accent
+  primary: '#0066CC',
+  secondary: '#FF8C00',
   success: '#10B981',
   warning: '#F59E0B',
   danger: '#EF4444',
@@ -63,46 +56,23 @@ const FONT_SIZES = {
   display: 40,
 };
 
-// Comprehensive StyleSheet
 const styles = StyleSheet.create({
-  // Page Layouts
-  page: {
-    backgroundColor: COLORS.white,
-    fontFamily: 'Helvetica',
-    fontSize: FONT_SIZES.base,
-    color: COLORS.gray800,
-  },
-
+  // Cover Page
   coverPage: {
     backgroundColor: COLORS.white,
     position: 'relative',
+    fontFamily: 'Helvetica',
   },
-
-  // Cover Page - Top Image Section
   coverImageSection: {
     height: 200,
     backgroundColor: COLORS.primary,
-    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   coverLogo: {
-    position: 'absolute',
-    top: SPACING.xl,
-    left: SPACING.huge,
+    width: 200,
+    height: 60,
   },
-  coverLogoText: {
-    fontSize: FONT_SIZES.xxl,
-    fontWeight: 700,
-    color: COLORS.white,
-    letterSpacing: 0.8,
-  },
-  coverLogoSubtext: {
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.white,
-    letterSpacing: 2,
-    marginTop: SPACING.xs,
-  },
-
-  // Cover Title Section
   coverTitleSection: {
     backgroundColor: COLORS.darkBlue,
     paddingVertical: SPACING.huge,
@@ -121,8 +91,6 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     lineHeight: 1.2,
   },
-
-  // Cover Footer
   coverFooter: {
     position: 'absolute',
     bottom: SPACING.huge,
@@ -143,9 +111,8 @@ const styles = StyleSheet.create({
   // Standard Page
   standardPage: {
     padding: SPACING.huge,
+    fontFamily: 'Helvetica',
   },
-
-  // Page Header
   pageHeader: {
     borderBottomWidth: 3,
     borderBottomColor: COLORS.primary,
@@ -158,8 +125,6 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     letterSpacing: 0.5,
   },
-
-  // Page Footer
   pageFooter: {
     position: 'absolute',
     bottom: SPACING.lg,
@@ -176,150 +141,137 @@ const styles = StyleSheet.create({
     color: COLORS.gray400,
   },
 
-  // Icon Card Layout (4-column)
-  iconCardRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: SPACING.xxl,
-    backgroundColor: COLORS.offWhite,
+  // Score Card Section (matching web UI)
+  scoreCard: {
+    backgroundColor: COLORS.success,
+    borderRadius: 8,
     padding: SPACING.xxl,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: COLORS.gray100,
-  },
-  iconCard: {
-    width: '22%',
+    marginBottom: SPACING.xxl,
     alignItems: 'center',
   },
-  iconCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 3,
-    borderColor: COLORS.secondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: SPACING.md,
-  },
-  iconText: {
-    fontSize: FONT_SIZES.xxxl,
-    color: COLORS.secondary,
-  },
-  iconLabel: {
-    fontSize: FONT_SIZES.md,
+  scoreCardTitle: {
+    fontSize: FONT_SIZES.xxl,
     fontWeight: 700,
-    color: COLORS.secondary,
+    color: COLORS.white,
+    marginBottom: SPACING.md,
     textAlign: 'center',
-    marginBottom: SPACING.xs,
   },
-  iconValue: {
+  scoreCardName: {
     fontSize: FONT_SIZES.lg,
+    color: COLORS.white,
+    opacity: 0.9,
+    marginBottom: SPACING.lg,
+  },
+  scoreCardNumber: {
+    fontSize: 72,
+    fontWeight: 700,
+    color: COLORS.white,
+  },
+  scoreCardMax: {
+    fontSize: FONT_SIZES.xxl,
+    color: COLORS.white,
+    opacity: 0.9,
+  },
+  scoreCardLevel: {
+    fontSize: FONT_SIZES.xl,
+    fontWeight: 700,
+    color: COLORS.white,
+    marginTop: SPACING.md,
+  },
+  scoreCardProgress: {
+    width: '80%',
+    height: 12,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 6,
+    marginTop: SPACING.lg,
+    overflow: 'hidden',
+  },
+  scoreCardProgressBar: {
+    height: '100%',
+    backgroundColor: COLORS.white,
+    borderRadius: 6,
+  },
+  scoreCardReadyText: {
+    fontSize: FONT_SIZES.lg,
+    color: COLORS.white,
+    marginTop: SPACING.sm,
+  },
+
+  // Readiness Breakdown Section
+  breakdownSection: {
+    backgroundColor: COLORS.white,
+    borderRadius: 8,
+    padding: SPACING.xxl,
+    marginBottom: SPACING.xxl,
+    borderWidth: 1,
+    borderColor: COLORS.gray200,
+  },
+  breakdownTitle: {
+    fontSize: FONT_SIZES.xxl,
     fontWeight: 700,
     color: COLORS.gray900,
     textAlign: 'center',
-  },
-
-  // Section Headers
-  section: {
     marginBottom: SPACING.xxl,
   },
-  sectionHeader: {
-    borderBottomWidth: 2,
-    borderBottomColor: COLORS.primary,
-    paddingBottom: SPACING.sm,
+  breakdownItem: {
     marginBottom: SPACING.lg,
   },
-  sectionTitle: {
-    fontSize: FONT_SIZES.xxl,
+  breakdownItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.sm,
+  },
+  breakdownItemTitle: {
+    fontSize: FONT_SIZES.lg,
     fontWeight: 700,
-    color: COLORS.primary,
-    letterSpacing: 0.3,
+    color: COLORS.gray800,
+  },
+  breakdownItemDescription: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.gray600,
+    marginBottom: SPACING.sm,
+  },
+  breakdownItemScoreContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  breakdownItemScoreText: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.gray600,
+    marginRight: SPACING.md,
+  },
+  breakdownItemBadge: {
+    paddingVertical: SPACING.xs,
+    paddingHorizontal: SPACING.md,
+    borderRadius: 12,
+    minWidth: 50,
+  },
+  breakdownItemBadgeText: {
+    fontSize: FONT_SIZES.sm,
+    fontWeight: 700,
+    color: COLORS.white,
+    textAlign: 'center',
+  },
+  breakdownProgressBar: {
+    height: 10,
+    backgroundColor: COLORS.gray200,
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
+  breakdownProgressFill: {
+    height: '100%',
+    borderRadius: 5,
+  },
+
+  // Section styles
+  section: {
+    marginBottom: SPACING.xxl,
   },
   sectionSubtitle: {
     fontSize: FONT_SIZES.xl,
     fontWeight: 700,
     color: COLORS.secondary,
     marginBottom: SPACING.md,
-  },
-
-  // Score Display
-  scoreDisplay: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: SPACING.xxl,
-    backgroundColor: COLORS.white,
-    padding: SPACING.xxl,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: COLORS.gray200,
-  },
-  scoreCircle: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    borderWidth: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: SPACING.xxl,
-  },
-  scoreNumber: {
-    fontSize: FONT_SIZES.huge,
-    fontWeight: 700,
-    color: COLORS.primary,
-  },
-  scoreLabel: {
-    fontSize: FONT_SIZES.md,
-    color: COLORS.gray600,
-    marginTop: SPACING.xs,
-  },
-  scoreSummary: {
-    flex: 1,
-  },
-  scoreSummaryTitle: {
-    fontSize: FONT_SIZES.xxl,
-    fontWeight: 700,
-    color: COLORS.gray900,
-    marginBottom: SPACING.sm,
-  },
-
-  // Table Styles
-  table: {
-    width: '100%',
-    marginBottom: SPACING.lg,
-    borderWidth: 1,
-    borderColor: COLORS.gray200,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.secondary,
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.lg,
-  },
-  tableHeaderCell: {
-    fontSize: FONT_SIZES.md,
-    fontWeight: 700,
-    color: COLORS.white,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.gray100,
-  },
-  tableRowAlt: {
-    backgroundColor: COLORS.gray50,
-  },
-  tableCell: {
-    fontSize: FONT_SIZES.base,
-    color: COLORS.gray800,
-  },
-  tableCellBold: {
-    fontSize: FONT_SIZES.base,
-    fontWeight: 700,
-    color: COLORS.gray900,
   },
 
   // Cards
@@ -330,17 +282,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
     borderLeftWidth: 4,
   },
-  cardPrimary: {
-    borderLeftColor: COLORS.primary,
-  },
-  cardSecondary: {
-    borderLeftColor: COLORS.secondary,
-  },
   cardSuccess: {
     borderLeftColor: COLORS.success,
-  },
-  cardWarning: {
-    borderLeftColor: COLORS.warning,
   },
 
   // Text Styles
@@ -352,11 +295,6 @@ const styles = StyleSheet.create({
   },
   textBold: {
     fontWeight: 700,
-  },
-  textSmall: {
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.gray600,
-    lineHeight: 1.5,
   },
 
   // List Styles
@@ -379,22 +317,6 @@ const styles = StyleSheet.create({
     lineHeight: 1.5,
   },
 
-  // Insight Boxes
-  insightBox: {
-    backgroundColor: COLORS.offWhite,
-    padding: SPACING.lg,
-    borderRadius: 4,
-    marginBottom: SPACING.lg,
-    borderLeftWidth: 4,
-    borderLeftColor: COLORS.primary,
-  },
-  insightTitle: {
-    fontSize: FONT_SIZES.md,
-    fontWeight: 700,
-    color: COLORS.gray900,
-    marginBottom: SPACING.sm,
-  },
-
   // Week Header
   weekHeader: {
     backgroundColor: COLORS.primary,
@@ -415,6 +337,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: SPACING.huge,
+    fontFamily: 'Helvetica',
   },
   ctaCard: {
     backgroundColor: COLORS.white,
@@ -471,13 +394,10 @@ const getStatusColor = (level: string): string => {
   return COLORS.gray400;
 };
 
-const getStatusText = (level: string): string => {
-  if (level.includes('Light')) return level;
-  const levelLower = level.toLowerCase();
-  if (levelLower === 'green') return 'Green Light';
-  if (levelLower === 'yellow') return 'Yellow Light';
-  if (levelLower === 'red') return 'Red Light';
-  return 'Assessment';
+const getBarColor = (percentage: number): string => {
+  if (percentage >= 75) return COLORS.success;
+  if (percentage >= 50) return COLORS.warning;
+  return COLORS.danger;
 };
 
 interface PDFDocumentProps {
@@ -487,7 +407,7 @@ interface PDFDocumentProps {
 export const PDFDocument: React.FC<PDFDocumentProps> = ({ result }) => {
   const { scoreResult, dimensionScores, aiRecommendation, userProfile } = result;
   const statusColor = getStatusColor(scoreResult.level);
-  const statusText = getStatusText(scoreResult.level);
+  const scorePercentage = scoreResult.score;
   const reportDate = new Date().toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -498,111 +418,71 @@ export const PDFDocument: React.FC<PDFDocumentProps> = ({ result }) => {
     <Document>
       {/* COVER PAGE */}
       <Page size="A4" style={styles.coverPage}>
-        {/* Top colored section with logo */}
         <View style={styles.coverImageSection}>
-          <View style={styles.coverLogo}>
-            <Text style={styles.coverLogoText}>BEAMX</Text>
-            <Text style={styles.coverLogoSubtext}>SOLUTIONS</Text>
-          </View>
+          <Image src={LOGO_WHITE_URL} style={styles.coverLogo} />
         </View>
 
-        {/* Title section */}
         <View style={styles.coverTitleSection}>
           <Text style={styles.coverTitle}>Business Idea</Text>
           <Text style={styles.coverSubtitle}>Validation Report</Text>
         </View>
 
-        {/* Footer info */}
         <View style={styles.coverFooter}>
-          <Text style={styles.coverFooterLabel}>Prepared By</Text>
-          <Text style={styles.coverFooterValue}>BeamX Solutions</Text>
+          <Text style={styles.coverFooterLabel}>Prepared For</Text>
+          <Text style={styles.coverFooterValue}>{userProfile.name || 'Entrepreneur'}</Text>
 
           <Text style={styles.coverFooterLabel}>Generated on</Text>
           <Text style={styles.coverFooterValue}>{reportDate}</Text>
         </View>
       </Page>
 
-      {/* EXECUTIVE SUMMARY */}
+      {/* SCORE & BREAKDOWN PAGE */}
       <Page size="A4" style={styles.standardPage}>
         <View style={styles.pageHeader}>
-          <Text style={styles.pageHeaderText}>Executive Summary</Text>
+          <Text style={styles.pageHeaderText}>Your Business Idea Assessment</Text>
         </View>
 
-        {/* Icon Cards Row */}
-        <View style={styles.iconCardRow}>
-          <View style={styles.iconCard}>
-            <View style={styles.iconCircle}>
-              <Text style={styles.iconText}>📊</Text>
-            </View>
-            <Text style={styles.iconLabel}>Industry</Text>
-            <Text style={styles.iconValue}>{userProfile.industry || 'N/A'}</Text>
+        {/* Score Card - matching web UI */}
+        <View style={[styles.scoreCard, { backgroundColor: statusColor }]}>
+          <Text style={styles.scoreCardTitle}>Your Business Idea Assessment</Text>
+          {userProfile.name && (
+            <Text style={styles.scoreCardName}>{userProfile.name}</Text>
+          )}
+          <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+            <Text style={styles.scoreCardNumber}>{scoreResult.totalPositive}</Text>
+            <Text style={styles.scoreCardMax}> / 10</Text>
           </View>
-
-          <View style={styles.iconCard}>
-            <View style={styles.iconCircle}>
-              <Text style={styles.iconText}>🎯</Text>
-            </View>
-            <Text style={styles.iconLabel}>Stage</Text>
-            <Text style={styles.iconValue}>{userProfile.stage || 'N/A'}</Text>
+          <Text style={styles.scoreCardLevel}>{scoreResult.level}</Text>
+          <View style={styles.scoreCardProgress}>
+            <View style={[styles.scoreCardProgressBar, { width: `${scorePercentage}%` }]} />
           </View>
-
-          <View style={styles.iconCard}>
-            <View style={styles.iconCircle}>
-              <Text style={styles.iconText}>📍</Text>
-            </View>
-            <Text style={styles.iconLabel}>Location</Text>
-            <Text style={styles.iconValue}>{userProfile.location || 'N/A'}</Text>
-          </View>
-
-          <View style={styles.iconCard}>
-            <View style={styles.iconCircle}>
-              <Text style={styles.iconText}>💡</Text>
-            </View>
-            <Text style={styles.iconLabel}>Score</Text>
-            <Text style={styles.iconValue}>{scoreResult.score}%</Text>
-          </View>
+          <Text style={styles.scoreCardReadyText}>{scorePercentage}% Ready</Text>
         </View>
 
-        {/* Overall Assessment Section */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Overall Assessment</Text>
-        </View>
+        {/* Readiness Breakdown - matching web UI */}
+        <View style={styles.breakdownSection}>
+          <Text style={styles.breakdownTitle}>Your Readiness Breakdown</Text>
 
-        <View style={styles.scoreDisplay}>
-          <View style={[styles.scoreCircle, { borderColor: statusColor }]}>
-            <Text style={styles.scoreNumber}>{scoreResult.score}</Text>
-            <Text style={styles.scoreLabel}>/100</Text>
-          </View>
-          <View style={styles.scoreSummary}>
-            <Text style={styles.scoreSummaryTitle}>Status: {statusText}</Text>
-            <Text style={styles.textBody}>{scoreResult.summary}</Text>
-            <Text style={[styles.textBody, styles.textBold]}>
-              Timeframe: {scoreResult.timeframe}
-            </Text>
-          </View>
-        </View>
-
-        {/* Dimension Scores Table */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Detailed Score Breakdown</Text>
-        </View>
-
-        <View style={styles.table}>
-          <View style={styles.tableHeader}>
-            <Text style={[styles.tableHeaderCell, { width: '40%' }]}>Category</Text>
-            <Text style={[styles.tableHeaderCell, { width: '20%' }]}>Your Score</Text>
-            <Text style={[styles.tableHeaderCell, { width: '20%' }]}>Max Score</Text>
-            <Text style={[styles.tableHeaderCell, { width: '20%' }]}>Percentage</Text>
-          </View>
           {dimensionScores.map((dim, idx) => {
-            const progress = dim.maxScore > 0 ? Math.round((dim.score / dim.maxScore) * 100) : 0;
+            const percentage = dim.maxScore > 0 ? Math.round((dim.score / dim.maxScore) * 100) : 0;
+            const barColor = getBarColor(percentage);
 
             return (
-              <View key={idx} style={idx % 2 === 1 ? [styles.tableRow, styles.tableRowAlt] : styles.tableRow}>
-                <Text style={[styles.tableCellBold, { width: '40%' }]}>{dim.name}</Text>
-                <Text style={[styles.tableCell, { width: '20%' }]}>{dim.score}</Text>
-                <Text style={[styles.tableCell, { width: '20%' }]}>{dim.maxScore}</Text>
-                <Text style={[styles.tableCellBold, { width: '20%' }]}>{progress}%</Text>
+              <View key={idx} style={styles.breakdownItem}>
+                <View style={styles.breakdownItemHeader}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.breakdownItemTitle}>{dim.name}</Text>
+                  </View>
+                  <View style={styles.breakdownItemScoreContainer}>
+                    <Text style={styles.breakdownItemScoreText}>{dim.score}/{dim.maxScore}</Text>
+                    <View style={[styles.breakdownItemBadge, { backgroundColor: barColor }]}>
+                      <Text style={styles.breakdownItemBadgeText}>{percentage}%</Text>
+                    </View>
+                  </View>
+                </View>
+                <View style={styles.breakdownProgressBar}>
+                  <View style={[styles.breakdownProgressFill, { width: `${percentage}%`, backgroundColor: barColor }]} />
+                </View>
               </View>
             );
           })}
@@ -610,64 +490,39 @@ export const PDFDocument: React.FC<PDFDocumentProps> = ({ result }) => {
 
         <View style={styles.pageFooter}>
           <Text style={styles.pageFooterText}>Business Assessment Report</Text>
-          <Text style={styles.pageFooterText}>Copyright © 2026 BeamXSolutions</Text>
+          <Text style={styles.pageFooterText}>Copyright © 2026 BeamX Solutions</Text>
         </View>
       </Page>
 
-      {/* AI RECOMMENDATIONS */}
+      {/* AI RECOMMENDATIONS - Combined into one page */}
       {aiRecommendation && (
-        <>
-          {/* STRATEGIC INSIGHTS */}
-          <Page size="A4" style={styles.standardPage}>
-            <View style={styles.pageHeader}>
-              <Text style={styles.pageHeaderText}>Strategic Advisory & Recommendations</Text>
-            </View>
+        <Page size="A4" style={styles.standardPage}>
+          <View style={styles.pageHeader}>
+            <Text style={styles.pageHeaderText}>AI Recommendations</Text>
+          </View>
 
-            <View style={styles.section}>
-              <Text style={styles.sectionSubtitle}>Strategic Insights</Text>
+          <View style={styles.section}>
+            <Text style={styles.sectionSubtitle}>Your Strengths</Text>
+            {aiRecommendation.strengths.slice(0, 3).map((strength, idx) => (
+              <View key={idx} style={[styles.card, styles.cardSuccess]}>
+                <Text style={[styles.textBody, styles.textBold]}>• {strength}</Text>
+              </View>
+            ))}
+          </View>
 
-              {aiRecommendation.strengths.slice(0, 3).map((strength, idx) => (
-                <View key={idx} style={[styles.card, styles.cardSuccess]}>
-                  <Text style={[styles.textBody, styles.textBold]}>
-                    • {strength}
-                  </Text>
-                </View>
-              ))}
-            </View>
+          <View style={styles.section}>
+            <Text style={styles.sectionSubtitle}>Personalized Plan</Text>
+            <Text style={styles.textBody}>{aiRecommendation.personalizedPlan}</Text>
+          </View>
 
-            <View style={styles.section}>
-              <Text style={styles.sectionSubtitle}>Action Steps</Text>
-
-              {aiRecommendation.weeklyRoadmap[0]?.tasks.slice(0, 3).map((task, idx) => (
-                <View key={idx} style={styles.listItem}>
-                  <Text style={styles.listBullet}>•</Text>
-                  <Text style={styles.listContent}>{task}</Text>
-                </View>
-              ))}
-            </View>
-
-            <View style={styles.pageFooter}>
-              <Text style={styles.pageFooterText}>Business Assessment Report</Text>
-              <Text style={styles.pageFooterText}>Copyright © 2026 BeamXSolutions</Text>
-            </View>
-          </Page>
-
-          {/* WEEKLY ROADMAP */}
-          <Page size="A4" style={styles.standardPage}>
-            <View style={styles.pageHeader}>
-              <Text style={styles.pageHeaderText}>Your Personalized Roadmap</Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.textBody}>{aiRecommendation.personalizedPlan}</Text>
-            </View>
-
-            {aiRecommendation.weeklyRoadmap.slice(0, 4).map((week) => (
-              <View key={week.week} style={styles.section}>
+          <View style={styles.section}>
+            <Text style={styles.sectionSubtitle}>Week-by-Week Roadmap</Text>
+            {aiRecommendation.weeklyRoadmap.slice(0, 2).map((week) => (
+              <View key={week.week} style={{ marginBottom: SPACING.md }}>
                 <View style={styles.weekHeader}>
                   <Text style={styles.weekHeaderText}>Week {week.week}</Text>
                 </View>
-                {week.tasks.map((task, idx) => (
+                {week.tasks.slice(0, 3).map((task, idx) => (
                   <View key={idx} style={styles.listItem}>
                     <Text style={styles.listBullet}>•</Text>
                     <Text style={styles.listContent}>{task}</Text>
@@ -675,13 +530,13 @@ export const PDFDocument: React.FC<PDFDocumentProps> = ({ result }) => {
                 ))}
               </View>
             ))}
+          </View>
 
-            <View style={styles.pageFooter}>
-              <Text style={styles.pageFooterText}>Business Assessment Report</Text>
-              <Text style={styles.pageFooterText}>Copyright © 2026 BeamXSolutions</Text>
-            </View>
-          </Page>
-        </>
+          <View style={styles.pageFooter}>
+            <Text style={styles.pageFooterText}>Business Assessment Report</Text>
+            <Text style={styles.pageFooterText}>Copyright © 2026 BeamX Solutions</Text>
+          </View>
+        </Page>
       )}
 
       {/* CALL TO ACTION */}

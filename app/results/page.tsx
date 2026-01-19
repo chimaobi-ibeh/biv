@@ -591,7 +591,7 @@ export default function ResultsPage() {
               className="flex items-center gap-2 px-6 py-3 bg-gray-700 text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors shadow-lg hover:shadow-xl"
             >
               <FiShare2 />
-              Share on Twitter
+              Share on X
             </button>
           </div>
 
