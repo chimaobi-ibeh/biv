@@ -8,7 +8,8 @@
       "Bash(git push:*)",
       "Bash(copy /Y \"public\\\\favicon.ico\" \"app\\\\favicon.ico\")",
       "Bash(copy /Y:*)",
-      "Bash(copy /Y \"public\\\\apple-touch-icon.png\" \"app\\\\apple-icon.png\")"
+      "Bash(copy /Y \"public\\\\apple-touch-icon.png\" \"app\\\\apple-icon.png\")",
+      "Bash(dir:*)"
     ]
   }
 }

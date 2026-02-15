@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BeamX Solutions - Business Idea Validator",
+  title: "BeamX Stellar - Business Idea Validator",
   description: "Validate your startup idea with AI-powered insights and data-driven recommendations from BeamX Solutions.",
   icons: {
     icon: [
@@ -30,13 +30,13 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: 'BeamX Solutions - Business Idea Validator',
+    title: 'BeamX Stellar - Business Idea Validator',
     description: 'Validate your startup idea with AI-powered insights',
     siteName: 'BeamX Solutions',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'BeamX Solutions - Business Idea Validator',
+    title: 'BeamX Stellar - Business Idea Validator',
     description: 'Validate your startup idea with AI-powered insights',
   },
 };
