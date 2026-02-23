@@ -503,9 +503,18 @@ export const PDFDocument: React.FC<PDFDocumentProps> = ({ result }) => {
 
           <View style={styles.section}>
             <Text style={styles.sectionSubtitle}>Your Strengths</Text>
-            {aiRecommendation.strengths.slice(0, 3).map((strength, idx) => (
+            {aiRecommendation.strengths.map((strength, idx) => (
               <View key={idx} style={[styles.card, styles.cardSuccess]}>
                 <Text style={[styles.textBody, styles.textBold]}>• {strength}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionSubtitle}>Areas to Address</Text>
+            {aiRecommendation.gaps.map((gap, idx) => (
+              <View key={idx} style={[styles.card, { borderLeftColor: COLORS.warning }]}>
+                <Text style={[styles.textBody, styles.textBold]}>• {gap}</Text>
               </View>
             ))}
           </View>
@@ -517,12 +526,12 @@ export const PDFDocument: React.FC<PDFDocumentProps> = ({ result }) => {
 
           <View style={styles.section}>
             <Text style={styles.sectionSubtitle}>Week-by-Week Roadmap</Text>
-            {aiRecommendation.weeklyRoadmap.slice(0, 2).map((week) => (
+            {aiRecommendation.weeklyRoadmap.map((week) => (
               <View key={week.week} style={{ marginBottom: SPACING.md }}>
                 <View style={styles.weekHeader}>
                   <Text style={styles.weekHeaderText}>Week {week.week}</Text>
                 </View>
-                {week.tasks.slice(0, 3).map((task, idx) => (
+                {week.tasks.map((task, idx) => (
                   <View key={idx} style={styles.listItem}>
                     <Text style={styles.listBullet}>•</Text>
                     <Text style={styles.listContent}>{task}</Text>
@@ -530,6 +539,21 @@ export const PDFDocument: React.FC<PDFDocumentProps> = ({ result }) => {
                 ))}
               </View>
             ))}
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionSubtitle}>Recommended Resources</Text>
+            {aiRecommendation.resources.map((resource, idx) => (
+              <View key={idx} style={[styles.card, { borderLeftColor: COLORS.primary }]}>
+                <Text style={[styles.textBody, styles.textBold]}>{resource.title}</Text>
+                <Text style={styles.textBody}>{resource.description}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionSubtitle}>Risk Assessment</Text>
+            <Text style={styles.textBody}>{aiRecommendation.riskAssessment}</Text>
           </View>
 
           <View style={styles.pageFooter}>
