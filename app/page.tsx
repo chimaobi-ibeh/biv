@@ -30,7 +30,7 @@ export default function Home() {
             </div>
 
             <h1 className="text-5xl lg:text-7xl font-bold mb-6 text-heading leading-tight">
-              Is Your Business Idea Ready to Launch?
+              Stellar: Is Your Business Idea Ready to Launch?
             </h1>
 
             <p className="text-xl lg:text-2xl text-gray-700 mb-8 leading-relaxed">

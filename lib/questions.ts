@@ -180,26 +180,11 @@ export const questions: Question[] = [
   },
   {
     id: 8,
-    title: 'Freedom vs. Money',
-    subtitle: 'What matters more to you?',
-    type: 'radio',
-    options: [
-      {
-        value: 'freedom',
-        label: 'Freedom (control my time/location) even if income is modest',
-        isPositive: true,
-      },
-      {
-        value: 'money',
-        label: 'Money (maximize income) even if less freedom',
-        isPositive: true,
-      },
-      {
-        value: 'balance',
-        label: 'Equal balance',
-        isPositive: true,
-      },
-    ],
+    title: 'Who are your competitors?',
+    subtitle: 'Direct or indirect — their name and website',
+    type: 'text',
+    placeholder: 'e.g., Acme Inc (acme.com), Beta Corp (betacorp.io)',
+    validation: (answer: string) => answer.length > 5,
   },
   {
     id: 9,
