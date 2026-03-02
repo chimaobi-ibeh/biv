@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AssessmentResponse, UserProfile, AIRecommendation, AssessmentResult } from '@/types';
 import { FiCheckCircle, FiAlertCircle, FiTrendingUp, FiBook, FiArrowLeft, FiCalendar, FiAlertTriangle, FiDownload, FiMail, FiShare2 } from 'react-icons/fi';
-import { analytics } from '@/lib/analytics';
+import { analytics, trackEvent } from '@/lib/analytics';
 
 export default function ResultsPage() {
   const router = useRouter();
@@ -20,10 +20,21 @@ export default function ResultsPage() {
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [email, setEmail] = useState('');
   const [emailSent, setEmailSent] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [hoveredRating, setHoveredRating] = useState(0);
+  const [selectedRating, setSelectedRating] = useState(0);
+  const [ratingSubmitted, setRatingSubmitted] = useState(false);
 
   useEffect(() => {
     loadDataAndGenerateRecommendations();
   }, []);
+
+  useEffect(() => {
+    if (!aiLoading && !loading && !error) {
+      const timer = setTimeout(() => setShowRatingModal(true), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [aiLoading, loading, error]);
 
   const loadDataAndGenerateRecommendations = async () => {
     try {
@@ -319,6 +330,39 @@ export default function ResultsPage() {
     }
 
     analytics.shareClicked(platform);
+  };
+
+  const ratingLabels: Record<number, string> = {
+    1: 'Not helpful at all',
+    2: 'Result cannot be implemented',
+    3: 'Just okay',
+    4: 'Great but missed one aspect',
+    5: 'Perfect — exactly what I needed',
+  };
+
+  const handleRatingSubmit = async (rating: number) => {
+    setSelectedRating(rating);
+    setRatingSubmitted(true);
+    trackEvent('result_rated', { rating, label: ratingLabels[rating], scoreLevel });
+
+    try {
+      const assessmentId = sessionStorage.getItem('assessmentId');
+      await fetch('/api/ratings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          assessmentId,
+          rating,
+          label: ratingLabels[rating],
+          scoreLevel,
+          totalPositive,
+        }),
+      });
+    } catch (err) {
+      console.error('Failed to save rating:', err);
+    }
+
+    setTimeout(() => setShowRatingModal(false), 2000);
   };
 
   const getScoreColor = (level: string) => {
@@ -629,6 +673,75 @@ export default function ResultsPage() {
             </div>
           )}
         </div>
+
+        {/* Rating Modal */}
+        {showRatingModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+            <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full relative animate-fade-in">
+              <button
+                onClick={() => setShowRatingModal(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none"
+                aria-label="Close"
+              >
+                ×
+              </button>
+
+              {ratingSubmitted ? (
+                <div className="text-center py-4">
+                  <div className="text-5xl mb-4">🙏</div>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2">Thank you!</h3>
+                  <p className="text-gray-600">Your feedback helps us improve.</p>
+                </div>
+              ) : (
+                <>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2 text-center">
+                    Rate the Result
+                  </h3>
+                  <p className="text-gray-500 text-center mb-6 text-sm">
+                    How useful were your results?
+                  </p>
+
+                  {/* Stars */}
+                  <div className="flex justify-center gap-3 mb-4">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        onClick={() => handleRatingSubmit(star)}
+                        onMouseEnter={() => setHoveredRating(star)}
+                        onMouseLeave={() => setHoveredRating(0)}
+                        className="text-4xl transition-transform duration-100 hover:scale-125 focus:outline-none"
+                        aria-label={`Rate ${star} out of 5`}
+                      >
+                        <span className={star <= (hoveredRating || selectedRating) ? 'text-yellow-400' : 'text-gray-300'}>
+                          ★
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Hover label */}
+                  <div className="min-h-[24px] text-center">
+                    {hoveredRating > 0 && (
+                      <p className="text-sm font-medium text-gray-600">
+                        {hoveredRating}/5 — {ratingLabels[hoveredRating]}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Rating guide */}
+                  <div className="mt-6 space-y-2 border-t pt-4">
+                    {[5, 4, 3, 2, 1].map((n) => (
+                      <div key={n} className="flex items-center gap-2 text-xs text-gray-500">
+                        <span className="text-yellow-400 font-bold w-4">{n}★</span>
+                        <span>{ratingLabels[n]}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* CTA */}
         <div className="bg-primary rounded-2xl shadow-xl p-8 text-white text-center">
