@@ -27,6 +27,7 @@ export default function AssessmentPage() {
   const [showProfileForm, setShowProfileForm] = useState(true);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     analytics.pageView('assessment');
@@ -164,6 +165,7 @@ export default function AssessmentPage() {
             'assessment_data',
             JSON.stringify(assessmentData)
           );
+          setIsSubmitting(true);
           router.push('/results');
         } catch (error) {
           console.error('Failed to save assessment data:', error);
@@ -200,6 +202,18 @@ export default function AssessmentPage() {
       }, 300);
     }
   };
+
+  if (isSubmitting) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Calculating your results...</p>
+          <p className="text-sm text-gray-400 mt-1">This will only take a moment</p>
+        </div>
+      </div>
+    );
+  }
 
   if (showProfileForm) {
     return (

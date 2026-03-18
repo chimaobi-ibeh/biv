@@ -102,11 +102,11 @@ async function sendWelcomeEmail(
           <style>
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .header { background: #245EA6; color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
             .score-badge { font-size: 48px; font-weight: bold; margin: 20px 0; }
             .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-            .action-items { background: white; padding: 20px; border-left: 4px solid #667eea; margin: 20px 0; }
-            .cta-button { display: inline-block; background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+            .action-items { background: white; padding: 20px; border-left: 4px solid #245EA6; margin: 20px 0; }
+            .cta-button { display: inline-block; background: #245EA6; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
             .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
           </style>
         </head>

@@ -556,28 +556,25 @@ export default function ResultsPage() {
             Take Action
           </h3>
           <div className="flex flex-wrap justify-center gap-4">
-            <div className="flex flex-col items-center gap-1">
-              <button
-                onClick={handleDownloadPDF}
-                disabled={pdfGenerating}
-                className={`btn btn-primary flex items-center gap-2 px-6 py-3 rounded-lg font-semibold ${
-                  pdfGenerating ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-              >
-                {pdfGenerating ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <FiDownload />
-                    Download PDF Report
-                  </>
-                )}
-              </button>
-              <p className="text-xs text-gray-400">Includes cover page, dimension analysis, AI insights &amp; weekly roadmap</p>
-            </div>
+            <button
+              onClick={handleDownloadPDF}
+              disabled={pdfGenerating}
+              className={`btn btn-primary flex items-center gap-2 px-6 py-3 rounded-lg font-semibold ${
+                pdfGenerating ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              {pdfGenerating ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <FiDownload />
+                  Download PDF Report
+                </>
+              )}
+            </button>
 
             <button
               onClick={() => setShowEmailForm(!showEmailForm)}
@@ -587,15 +584,13 @@ export default function ResultsPage() {
               Email Results
             </button>
 
-            <div className="relative">
-              <button
-                onClick={() => handleShare('twitter')}
-                className="flex items-center gap-2 px-6 py-3 bg-gray-700 text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors"
-              >
-                <FiShare2 />
-                Share
-              </button>
-            </div>
+            <button
+              onClick={() => handleShare('twitter')}
+              className="flex items-center gap-2 px-6 py-3 bg-gray-700 text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors"
+            >
+              <FiShare2 />
+              Share
+            </button>
 
             <a
               href="/assessment/retake"
@@ -605,6 +600,7 @@ export default function ResultsPage() {
               Retake Assessment
             </a>
           </div>
+          <p className="text-xs text-gray-400 text-center mt-3">PDF includes cover page, dimension analysis, AI insights &amp; weekly roadmap</p>
 
           {/* Inline email form when "Email Results" is clicked */}
           {showEmailForm && !emailSubmitted && (
