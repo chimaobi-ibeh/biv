@@ -2,11 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { UserProfile, AssessmentResponse } from '@/types';
-import { analytics } from '@/lib/analytics';
-import { supabase } from '@/lib/supabase';
 import { questions } from '@/lib/questions';
-import { FiArrowRight, FiArrowLeft, FiCheck, FiUser, FiMail, FiBriefcase, FiMapPin } from 'react-icons/fi';
+import { AssessmentResponse, UserProfile } from '@/types';
+import { analytics } from '@/lib/analytics';
+import {
+  FiArrowRight,
+  FiArrowLeft,
+  FiCheck,
+  FiUser,
+  FiMail,
+  FiBriefcase,
+  FiMapPin,
+  FiAlertCircle,
+} from 'react-icons/fi';
 
 export default function AssessmentPage() {
   const router = useRouter();
@@ -16,83 +24,69 @@ export default function AssessmentPage() {
   const [currentFollowUp, setCurrentFollowUp] = useState('');
   const [showFollowUp, setShowFollowUp] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile>({});
-  const [isTransitioning, setIsTransitioning] = useState(false);
   const [showProfileForm, setShowProfileForm] = useState(true);
-  const [formError, setFormError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   useEffect(() => {
     analytics.pageView('assessment');
+
+    // If coming from a retake, skip the profile form
+    try {
+      const saved = sessionStorage.getItem('retake_profile');
+      if (saved) {
+        const profile = JSON.parse(saved);
+        setUserProfile(profile);
+        setShowProfileForm(false);
+        sessionStorage.removeItem('retake_profile');
+      }
+    } catch {
+      // ignore
+    }
   }, []);
 
   useEffect(() => {
     if (currentQuestion > 0) {
-      analytics.questionAnswered(questions[currentQuestion - 1].id, currentQuestion);
+      analytics.questionAnswered(
+        questions[currentQuestion - 1].id,
+        currentQuestion
+      );
     }
   }, [currentQuestion]);
 
-  const handleProfileSubmit = async (e: React.FormEvent) => {
+  // Track drop-off when user leaves mid-assessment
+  useEffect(() => {
+    if (showProfileForm) return; // Not yet in the questions
+
+    const handleDropOff = () => {
+      analytics.dropOff(currentQuestion + 1, questions.length);
+    };
+
+    // Fire on tab close / navigate away
+    window.addEventListener('beforeunload', handleDropOff);
+    // Fire on tab switch (mobile users often don't trigger beforeunload)
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        handleDropOff();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleDropOff);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [currentQuestion, showProfileForm]);
+
+  // Clear validation error when user interacts
+  useEffect(() => {
+    setValidationError(null);
+  }, [currentAnswer, currentFollowUp]);
+
+  const handleProfileSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError('');
-
-    // Validate that ALL fields are provided (making form mandatory)
-    if (!userProfile.name || !userProfile.email || !userProfile.industry || !userProfile.location) {
-      setFormError('All fields are required to continue');
-      return;
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(userProfile.email)) {
-      setFormError('Please enter a valid email address');
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      // Save user profile to Supabase
-      const { data, error } = await supabase
-        .from('business_idea_assessments')
-        .insert([
-          {
-            name: userProfile.name,
-            email: userProfile.email,
-            industry: userProfile.industry,
-            location: userProfile.location,
-            responses: [],
-            created_at: new Date().toISOString(),
-          }
-        ])
-        .select();
-
-      if (error) {
-        console.error('Supabase error:', error);
-        setFormError('Failed to save information. Please try again.');
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Store assessment ID for later use
-      if (data && data[0]) {
-        sessionStorage.setItem('assessmentId', data[0].id);
-      }
-
-      // persist profile for questions page
-      try {
-        sessionStorage.setItem('assessment_profile', JSON.stringify(userProfile));
-      } catch (e) {
-        console.error('Session storage error:', e);
-      }
-
-      analytics.assessmentStarted();
-      setShowProfileForm(false);
-      setIsSubmitting(false);
-    } catch (error) {
-      console.error('Error:', error);
-      setFormError('An unexpected error occurred. Please try again.');
-      setIsSubmitting(false);
-    }
+    setShowProfileForm(false);
+    analytics.assessmentStarted();
   };
 
   const handleAnswer = (value: string) => {
@@ -107,21 +101,39 @@ export default function AssessmentPage() {
     }
   };
 
-  const handleNext = async () => {
+  const validateCurrentAnswer = (): boolean => {
     const question = questions[currentQuestion];
 
-    if (!currentAnswer) {
-      alert('Please provide an answer before continuing');
-      return;
+    if (!currentAnswer.trim()) {
+      setValidationError('Please provide an answer before continuing.');
+      return false;
     }
 
-    if (showFollowUp && !currentFollowUp) {
-      alert('Please answer the follow-up question');
-      return;
+    // For text questions, check the validation function if one exists
+    if (question.type === 'text' && question.validation) {
+      if (!question.validation(currentAnswer)) {
+        setValidationError(
+          'Please provide a more detailed answer (at least 20 characters).'
+        );
+        return false;
+      }
     }
+
+    if (showFollowUp && question.followUpPrompt && !currentFollowUp.trim()) {
+      setValidationError('Please answer the follow-up question.');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleNext = () => {
+    if (!validateCurrentAnswer()) return;
 
     setIsTransitioning(true);
+    setValidationError(null);
 
+    const question = questions[currentQuestion];
     const newResponse: AssessmentResponse = {
       questionId: question.id,
       answer: currentAnswer,
@@ -131,7 +143,7 @@ export default function AssessmentPage() {
     const updatedResponses = [...responses, newResponse];
     setResponses(updatedResponses);
 
-    setTimeout(async () => {
+    setTimeout(() => {
       if (currentQuestion < questions.length - 1) {
         setCurrentQuestion(currentQuestion + 1);
         setCurrentAnswer('');
@@ -142,31 +154,24 @@ export default function AssessmentPage() {
         // Assessment complete
         analytics.assessmentCompleted(updatedResponses.length, 'completed');
 
-        // Save to session storage
-        const assessmentData = {
-          responses: updatedResponses,
-          userProfile,
-          timestamp: new Date().toISOString(),
-        };
-        sessionStorage.setItem('assessment_data', JSON.stringify(assessmentData));
-
-        // Save all responses to Supabase
         try {
-          const assessmentId = sessionStorage.getItem('assessmentId');
-          if (assessmentId) {
-            await supabase
-              .from('business_idea_assessments')
-              .update({
-                responses: updatedResponses,
-                completed_at: new Date().toISOString(),
-              })
-              .eq('id', assessmentId);
-          }
+          const assessmentData = {
+            responses: updatedResponses,
+            userProfile,
+            timestamp: new Date().toISOString(),
+          };
+          sessionStorage.setItem(
+            'assessment_data',
+            JSON.stringify(assessmentData)
+          );
+          router.push('/results');
         } catch (error) {
-          console.error('Error saving responses to Supabase:', error);
+          console.error('Failed to save assessment data:', error);
+          setValidationError(
+            'Failed to save your responses. Please make sure your browser allows session storage and try again.'
+          );
+          setIsTransitioning(false);
         }
-
-        router.push('/results');
       }
     }, 300);
   };
@@ -174,13 +179,18 @@ export default function AssessmentPage() {
   const handleBack = () => {
     if (currentQuestion > 0) {
       setIsTransitioning(true);
+      setValidationError(null);
+
       setTimeout(() => {
         const previousResponse = responses[currentQuestion - 1];
         setCurrentAnswer(previousResponse.answer);
         setCurrentFollowUp(previousResponse.followUpAnswer || '');
 
         const question = questions[currentQuestion - 1];
-        if (question.followUpCondition && question.followUpCondition(previousResponse.answer)) {
+        if (
+          question.followUpCondition &&
+          question.followUpCondition(previousResponse.answer)
+        ) {
           setShowFollowUp(true);
         }
 
@@ -191,100 +201,115 @@ export default function AssessmentPage() {
     }
   };
 
-  // Show pre-assessment profile as its own page — keeps form single-screen on mobile
   if (showProfileForm) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4 py-6">
-        <div className="max-w-md w-full">
-          <div className="mb-4">
-            <button onClick={() => router.push('/')} className="inline-flex items-center gap-2 text-sm font-medium text-primary bg-white border border-gray-200 px-3 py-2 rounded-lg shadow-sm transition transform duration-150 hover:-translate-y-1 hover:shadow-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/30">
-              <FiArrowLeft /> Back to Home
-            </button>
+      <div className="min-h-screen bg-background flex flex-col items-center px-4 py-12">
+        {/* Back to Home */}
+        <div className="w-full max-w-lg mb-6">
+          <a
+            href="/"
+            className="inline-flex items-center gap-2 px-4 py-2 text-blue-700 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors"
+          >
+            <FiArrowLeft className="text-sm" />
+            Back to Home
+          </a>
+        </div>
+
+        {/* Form Card */}
+        <div className="max-w-lg w-full bg-white rounded-2xl shadow-lg p-8">
+          {/* Icon */}
+          <div className="flex justify-center mb-4">
+            <div className="p-2 bg-white rounded-xl shadow-md">
+              <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
+                <FiCheck className="text-2xl text-white" />
+              </div>
+            </div>
           </div>
 
-          <div className="bg-white rounded-3xl shadow-2xl p-6 border border-gray-100">
-            <div className="text-center mb-4">
-              <div className="inline-block p-2 bg-white rounded-2xl shadow mb-3">
-                <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-                  <FiCheck className="text-2xl text-white" />
-                </div>
-              </div>
-              <h1 className="text-2xl font-bold mb-1 text-heading">Let's Get Started</h1>
-              <p className="text-sm text-gray-600 mb-1">Complete all fields to get personalized insights</p>
+          {/* Heading */}
+          <h1 className="text-2xl font-bold text-center text-gray-900 mb-1">
+            Let&apos;s Get Started
+          </h1>
+          <p className="text-center text-gray-500 mb-6">
+            Complete all fields to get personalized insights
+          </p>
+
+          <form onSubmit={handleProfileSubmit} className="space-y-4">
+            {/* Name */}
+            <input
+              type="text"
+              value={userProfile.name || ''}
+              onChange={(e) =>
+                setUserProfile({ ...userProfile, name: e.target.value })
+              }
+              maxLength={100}
+              required
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-700 placeholder-gray-400"
+              placeholder="Name *"
+            />
+
+            {/* Email */}
+            <input
+              type="email"
+              value={userProfile.email || ''}
+              onChange={(e) =>
+                setUserProfile({ ...userProfile, email: e.target.value })
+              }
+              maxLength={254}
+              required
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-700 placeholder-gray-400"
+              placeholder="Email *"
+            />
+
+            {/* Industry + Location side by side */}
+            <div className="grid grid-cols-2 gap-3">
+              <input
+                type="text"
+                value={userProfile.industry || ''}
+                onChange={(e) =>
+                  setUserProfile({ ...userProfile, industry: e.target.value })
+                }
+                maxLength={100}
+                required
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-700 placeholder-gray-400"
+                placeholder="Industry *"
+              />
+              <input
+                type="text"
+                value={userProfile.location || ''}
+                onChange={(e) =>
+                  setUserProfile({ ...userProfile, location: e.target.value })
+                }
+                maxLength={100}
+                required
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-gray-700 placeholder-gray-400"
+                placeholder="Location *"
+              />
             </div>
 
-            <form onSubmit={handleProfileSubmit} className="space-y-3">
-              <div className="grid grid-cols-1 gap-3">
-                <div>
-                  <input 
-                    type="text" 
-                    value={userProfile.name || ''} 
-                    onChange={(e) => setUserProfile({ ...userProfile, name: e.target.value })} 
-                    placeholder="Name *" 
-                    className="w-full px-3 py-2 border rounded-xl border-gray-200 focus:ring-2 focus:ring-purple-500" 
-                    required
-                  />
-                </div>
-                <div>
-                  <input 
-                    type="email" 
-                    value={userProfile.email || ''} 
-                    onChange={(e) => setUserProfile({ ...userProfile, email: e.target.value })} 
-                    placeholder="Email *" 
-                    className="w-full px-3 py-2 border rounded-xl border-gray-200 focus:ring-2 focus:ring-blue-500" 
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <input 
-                    type="text" 
-                    value={userProfile.industry || ''} 
-                    onChange={(e) => setUserProfile({ ...userProfile, industry: e.target.value })} 
-                    placeholder="Industry *" 
-                    className="w-full px-3 py-2 border rounded-xl border-gray-200 focus:ring-2 focus:ring-indigo-500" 
-                    required
-                  />
-                  <input 
-                    type="text" 
-                    value={userProfile.location || ''} 
-                    onChange={(e) => setUserProfile({ ...userProfile, location: e.target.value })} 
-                    placeholder="Location *" 
-                    className="w-full px-3 py-2 border rounded-xl border-gray-200 focus:ring-2 focus:ring-pink-500" 
-                    required
-                  />
-                </div>
-              </div>
+            {/* Submit */}
+            <button
+              type="submit"
+              className="w-full btn btn-primary py-3.5 rounded-lg font-bold text-lg"
+            >
+              Start Assessment
+            </button>
 
-              {formError && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
-                  {formError}
-                </div>
-              )}
-
-              <div className="pt-3 flex flex-col gap-2">
-                <button 
-                  type="submit" 
-                  disabled={isSubmitting}
-                  className="w-full btn btn-primary py-3 rounded-xl font-bold disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? 'Starting Assessment...' : 'Start Assessment'}
-                </button>
-              </div>
-
-              <p className="text-xs text-gray-500 text-center mt-2">
-                <span className="text-red-500">*</span> Required fields
-              </p>
-            </form>
-          </div>
-
-          <div className="mt-4 text-center">
-            <p className="text-xs text-gray-500">
-              🔒 Your information is secure and never shared.{' '}
-              <a href="/privacy" className="text-primary hover:underline">
-                Privacy Policy
-              </a>
+            {/* Required note */}
+            <p className="text-center text-sm text-gray-400">
+              <span className="text-red-400">*</span> Required fields
             </p>
-          </div>
+          </form>
+        </div>
+
+        {/* Trust Indicators */}
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-500">
+            &#128274; Your information is secure and never shared.{' '}
+            <a href="#" className="underline hover:text-gray-700">
+              Privacy Policy
+            </a>
+          </p>
         </div>
       </div>
     );
@@ -294,31 +319,30 @@ export default function AssessmentPage() {
   const progress = ((currentQuestion + 1) / questions.length) * 100;
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4">
+    <div className="min-h-screen bg-background py-4 px-4">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={() => router.push('/')}
-            aria-label="Back to home"
-            className="inline-flex items-center gap-2 text-sm font-medium text-primary bg-white border border-gray-200 px-3 py-2 rounded-lg shadow-sm transition transform duration-150 hover:-translate-y-1 hover:shadow-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/30"
+        {/* Back to Home */}
+        <div className="mb-3">
+          <a
+            href="/"
+            className="inline-flex items-center gap-2 text-sm font-medium text-primary bg-white border border-gray-200 px-3 py-2 rounded-lg shadow-sm transition transform duration-150 hover:-translate-y-1 hover:shadow-md hover:bg-gray-50"
           >
-            <FiArrowLeft />
-            Home
-          </button>
+            <FiArrowLeft /> Back to Home
+          </a>
         </div>
 
         {/* Header with Progress */}
-        <div className="mb-8">
+        <div className="mb-4">
           {/* Step Indicators */}
-          <div className="flex items-center justify-between mb-6 overflow-x-auto pb-2">
+          <div className="flex items-center justify-between mb-3 overflow-x-auto pb-1">
             {questions.map((_, index) => (
               <div key={index} className="flex items-center">
                 <div
-                  className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-sm transition-all duration-300 ${
+                  className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-xs transition-all duration-300 ${
                     index < currentQuestion
-                      ? 'bg-green-500 text-white shadow-lg'
+                      ? 'bg-green-500 text-white shadow-md'
                       : index === currentQuestion
-                      ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg scale-110'
+                      ? 'bg-primary text-white shadow-md scale-110'
                       : 'bg-white text-gray-400 border-2 border-gray-200'
                   }`}
                 >
@@ -326,7 +350,7 @@ export default function AssessmentPage() {
                 </div>
                 {index < questions.length - 1 && (
                   <div
-                    className={`h-1 w-8 lg:w-16 mx-1 transition-all duration-500 ${
+                    className={`h-0.5 w-6 lg:w-12 mx-0.5 transition-all duration-500 ${
                       index < currentQuestion ? 'bg-green-500' : 'bg-gray-200'
                     }`}
                   />
@@ -336,18 +360,18 @@ export default function AssessmentPage() {
           </div>
 
           {/* Progress Bar */}
-          <div className="bg-white rounded-2xl shadow-lg p-4">
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-sm font-bold text-gray-700">
+          <div className="bg-white rounded-xl shadow-md p-3">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xs font-bold text-gray-700">
                 Question {currentQuestion + 1} of {questions.length}
               </span>
-              <span className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
+              <span className="text-xs font-bold text-primary">
                 {Math.round(progress)}% Complete
               </span>
             </div>
-            <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 transition-all duration-700 ease-out rounded-full shadow-lg"
+                className="h-full bg-primary transition-all duration-700 ease-out rounded-full"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -357,26 +381,30 @@ export default function AssessmentPage() {
         {/* Question Card */}
         <div
           className={`bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden transition-all duration-300 ${
-            isTransitioning ? 'opacity-0 transform scale-95' : 'opacity-100 transform scale-100'
+            isTransitioning
+              ? 'opacity-0 transform scale-95'
+              : 'opacity-100 transform scale-100'
           }`}
         >
-          <div className="bg-primary px-8 py-6 text-white">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center text-white font-bold text-xl">
+          <div className="bg-primary px-6 py-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center text-white font-bold text-base shrink-0">
                 {currentQuestion + 1}
               </div>
-              <h2 className="text-3xl font-bold text-white flex-1">{question.title}</h2>
+              <div>
+                <h2 className="text-xl font-bold text-white">{question.title}</h2>
+                {question.subtitle && (
+                  <p className="text-sm text-white/90 mt-0.5">{question.subtitle}</p>
+                )}
+              </div>
             </div>
-            {question.subtitle && (
-              <p className="text-lg text-white/90 ml-15 pl-2">{question.subtitle}</p>
-            )}
           </div>
 
-          <div className="p-8">
+          <div className="p-4">
             {/* Answer Options */}
-            <div className="space-y-4">
+            <div className="space-y-2">
               {question.type === 'radio' && question.options && (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {question.options.map((option, index) => (
                     <label
                       key={option.value}
@@ -394,27 +422,29 @@ export default function AssessmentPage() {
                         className="peer sr-only"
                       />
                       <div
-                        className={`p-5 border-2 rounded-2xl transition-all duration-300 ${
+                        className={`p-3 border-2 rounded-xl transition-all duration-300 ${
                           currentAnswer === option.value
-                            ? 'border-primary bg-primary-10 shadow-lg scale-[1.02]'
-                            : 'border-gray-200 bg-white hover:border-primary hover:shadow-md'
+                            ? 'border-primary bg-primary-10 shadow-md'
+                            : 'border-gray-200 bg-white hover:border-primary hover:shadow-sm'
                         }`}
                       >
-                        <div className="flex items-start gap-4">
+                        <div className="flex items-center gap-3">
                           <div
-                            className={`flex-shrink-0 w-6 h-6 rounded-full border-2 mt-0.5 flex items-center justify-center transition-all duration-300 ${
+                            className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
                               currentAnswer === option.value
-                                ? 'border-purple-600 bg-purple-600'
-                                : 'border-gray-300 bg-white group-hover:border-purple-400'
+                                ? 'border-primary bg-primary'
+                                : 'border-gray-300 bg-white group-hover:border-primary'
                             }`}
                           >
                             {currentAnswer === option.value && (
-                              <div className="w-3 h-3 bg-white rounded-full" />
+                              <div className="w-2 h-2 bg-white rounded-full" />
                             )}
                           </div>
                           <span
-                            className={`text-base font-medium transition-colors ${
-                              currentAnswer === option.value ? 'text-gray-900' : 'text-gray-700'
+                            className={`text-sm font-medium transition-colors ${
+                              currentAnswer === option.value
+                                ? 'text-gray-900'
+                                : 'text-gray-700'
                             }`}
                           >
                             {option.label}
@@ -433,10 +463,11 @@ export default function AssessmentPage() {
                     onChange={(e) => handleAnswer(e.target.value)}
                     placeholder={question.placeholder}
                     rows={5}
-                    className="w-full px-5 py-4 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none text-base transition-all duration-200 hover:border-purple-300"
+                    maxLength={2000}
+                    className="w-full px-5 py-4 border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-primary focus:border-primary resize-none text-base transition-all duration-200 hover:border-primary/40"
                   />
                   <div className="absolute bottom-3 right-3 text-sm text-gray-400">
-                    {currentAnswer.length} characters
+                    {currentAnswer.length} / 2000
                   </div>
                 </div>
               )}
@@ -454,24 +485,33 @@ export default function AssessmentPage() {
                     value={currentFollowUp}
                     onChange={(e) => setCurrentFollowUp(e.target.value)}
                     rows={3}
+                    maxLength={2000}
                     className="w-full px-4 py-3 border-2 border-amber-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 resize-none bg-white"
                     placeholder="Please elaborate..."
                   />
                 </div>
               )}
             </div>
+
+            {/* Inline Validation Error */}
+            {validationError && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-sm text-red-700 animate-fade-in">
+                <FiAlertCircle className="flex-shrink-0" />
+                {validationError}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Navigation */}
-        <div className="flex justify-between items-center mt-8">
+        <div className="flex justify-between items-center mt-4">
           <button
             onClick={handleBack}
             disabled={currentQuestion === 0}
-            className={`group flex items-center gap-2 px-6 py-4 rounded-xl font-bold transition-all duration-300 ${
+            className={`group flex items-center gap-2 px-5 py-3 rounded-xl font-bold transition-all duration-300 ${
               currentQuestion === 0
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-white text-gray-700 shadow-lg hover:shadow-xl border-2 border-gray-200 hover:border-purple-500 hover:text-purple-600 transform hover:scale-105'
+                : 'bg-white text-gray-700 shadow-lg hover:shadow-xl border-2 border-gray-200 hover:border-primary hover:text-primary transform hover:scale-105'
             }`}
           >
             <FiArrowLeft className="group-hover:-translate-x-1 transition-transform" />
@@ -481,19 +521,23 @@ export default function AssessmentPage() {
           <button
             onClick={handleNext}
             disabled={!currentAnswer}
-            className={`group btn btn-primary flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-lg ${
-              !currentAnswer ? 'opacity-60 cursor-not-allowed' : ''
+            className={`group flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 ${
+              currentAnswer
+                ? 'btn btn-primary'
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
           >
-            {currentQuestion === questions.length - 1 ? 'See Results' : 'Next Question'}
+            {currentQuestion === questions.length - 1
+              ? 'See Results'
+              : 'Next Question'}
             <FiArrowRight className="group-hover:translate-x-1 transition-transform" />
           </button>
         </div>
 
         {/* Help Text */}
-        <div className="mt-6 text-center">
+        <div className="mt-3 text-center">
           <p className="text-sm text-gray-500">
-            💡 Tip: Be honest for the most accurate recommendations
+            &#128161; Tip: Be honest for the most accurate recommendations
           </p>
         </div>
       </div>

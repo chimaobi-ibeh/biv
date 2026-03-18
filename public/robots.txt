@@ -1,0 +1,6 @@
+# BeamX Business Idea Validator
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://beamxsolutions.com/sitemap.xml

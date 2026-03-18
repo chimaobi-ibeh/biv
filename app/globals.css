@@ -21,6 +21,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-surface: var(--surface);
+  --color-primary-10: rgba(36,94,166,0.10);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

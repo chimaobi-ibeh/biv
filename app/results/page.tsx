@@ -1,329 +1,271 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { AssessmentResponse, UserProfile, AIRecommendation, AssessmentResult } from '@/types';
-import { FiCheckCircle, FiAlertCircle, FiTrendingUp, FiBook, FiArrowLeft, FiCalendar, FiAlertTriangle, FiDownload, FiMail, FiShare2 } from 'react-icons/fi';
-import { analytics, trackEvent } from '@/lib/analytics';
+import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  ResponsiveContainer,
+} from 'recharts';
+import {
+  FiDownload,
+  FiMail,
+  FiShare2,
+  FiCheckCircle,
+  FiAlertCircle,
+  FiRefreshCw,
+} from 'react-icons/fi';
+import {
+  AssessmentResponse,
+  UserProfile,
+  ScoreResult,
+  DimensionScore,
+  AIRecommendation,
+} from '@/types';
+import {
+  calculateScore,
+  calculateDimensionScores,
+  generateShareText,
+} from '@/lib/scoring';
+import { generatePDFReport } from '@/lib/pdf-generator';
+import { analytics } from '@/lib/analytics';
+import { useToast } from '@/components/Toast';
 
 export default function ResultsPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { addToast, ToastContainer } = useToast();
+
   const [responses, setResponses] = useState<AssessmentResponse[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile>({});
-  const [recommendation, setRecommendation] = useState<AIRecommendation | null>(null);
-  const [scoreLevel, setScoreLevel] = useState<string>('');
-  const [totalPositive, setTotalPositive] = useState<number>(0);
-  const [dimensionScores, setDimensionScores] = useState<any[]>([]);
+  const [scoreResult, setScoreResult] = useState<ScoreResult | null>(null);
+  const [dimensionScores, setDimensionScores] = useState<DimensionScore[]>([]);
+  const [aiRecommendation, setAIRecommendation] =
+    useState<AIRecommendation | null>(null);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [email, setEmail] = useState('');
-  const [emailSent, setEmailSent] = useState(false);
-  const [showRatingModal, setShowRatingModal] = useState(false);
-  const [hoveredRating, setHoveredRating] = useState(0);
-  const [selectedRating, setSelectedRating] = useState(0);
-  const [ratingSubmitted, setRatingSubmitted] = useState(false);
+  const [emailSubmitted, setEmailSubmitted] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [emailSending, setEmailSending] = useState(false);
+  const [pdfGenerating, setPdfGenerating] = useState(false);
 
   useEffect(() => {
-    loadDataAndGenerateRecommendations();
-  }, []);
+    const assessmentData = sessionStorage.getItem('assessment_data');
 
-  useEffect(() => {
-    if (!aiLoading && !loading && !error) {
-      const timer = setTimeout(() => setShowRatingModal(true), 1500);
-      return () => clearTimeout(timer);
+    if (!assessmentData) {
+      router.push('/assessment');
+      return;
     }
-  }, [aiLoading, loading, error]);
 
-  const loadDataAndGenerateRecommendations = async () => {
     try {
-      // Load assessment data from session storage
-      const assessmentData = sessionStorage.getItem('assessment_data');
-      if (!assessmentData) {
-        setError('No assessment data found. Please complete the assessment first.');
-        setLoading(false);
-        return;
+      const data = JSON.parse(assessmentData);
+
+      if (!data.responses || !Array.isArray(data.responses) || data.responses.length === 0) {
+        throw new Error('Invalid assessment data');
       }
 
-      const data = JSON.parse(assessmentData);
-      setResponses(data.responses || []);
+      setResponses(data.responses);
       setUserProfile(data.userProfile || {});
 
-      // Set email from profile if available
-      if (data.userProfile.email) {
-        setEmail(data.userProfile.email);
-      }
+      const score = calculateScore(data.responses);
+      const dimensions = calculateDimensionScores(data.responses);
 
-      // Calculate score and dimensions
-      const { scoreLevel: level, totalPositive: total, dimensions, scorePercentage, timeframe, actionItems } = calculateScore(data.responses || []);
-      setScoreLevel(level);
-      setTotalPositive(total);
+      setScoreResult(score);
       setDimensionScores(dimensions);
+      setLoading(false);
 
-      analytics.assessmentCompleted(total, level);
+      analytics.assessmentCompleted(score.score, score.level);
       analytics.pageView('results');
 
-      setLoading(false);
-
-      // Automatically fetch AI recommendations
-      fetchAIRecommendations(data.responses, data.userProfile, level, total);
-    } catch (err) {
-      console.error('Error loading results:', err);
-      setError('Failed to load assessment data. Please try again.');
-      setLoading(false);
+      if (data.userProfile?.email) {
+        setEmail(data.userProfile.email);
+      }
+    } catch (error) {
+      console.error('Failed to load assessment data:', error);
+      addToast('Could not load your assessment data. Redirecting to start over.', 'error');
+      setTimeout(() => router.push('/assessment'), 2000);
     }
-  };
+  }, [router, addToast]);
 
-  const fetchAIRecommendations = async (responsesData: any[], profileData: any, level: string, total: number) => {
+  const fetchAIRecommendations = useCallback(async () => {
+    if (!scoreResult) return;
+
     setAiLoading(true);
+    setAiError(null);
+    analytics.aiRecommendationRequested();
+    const startTime = Date.now();
 
     try {
       const response = await fetch('/api/analyze', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          responses: responsesData,
-          userProfile: profileData,
-          scoreLevel: level,
-          totalPositive: total,
+          responses,
+          userProfile,
+          scoreLevel: scoreResult.level,
+          totalPositive: scoreResult.totalPositive,
         }),
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        setRecommendation(result.recommendation);
+      if (response.status === 429) {
+        const data = await response.json();
+        const retrySeconds = data.retryAfterSeconds || 60;
+        setAiError(
+          `Too many requests. Please wait ${retrySeconds} seconds and try again.`
+        );
+        addToast(
+          `Rate limit reached. Please wait ${retrySeconds} seconds.`,
+          'error'
+        );
+        return;
       }
-    } catch (err: any) {
-      console.error('Error loading AI results:', err);
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || `Server error (${response.status})`);
+      }
+
+      const data = await response.json();
+      setAIRecommendation(data.recommendation);
+      analytics.aiRecommendationReceived(Date.now() - startTime);
+      addToast('AI recommendations generated successfully!', 'success');
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'An unexpected error occurred';
+      console.error('Failed to fetch AI recommendations:', error);
+      setAiError(message);
+      analytics.aiRecommendationFailed(message);
+      addToast(`Failed to generate recommendations: ${message}`, 'error');
     } finally {
       setAiLoading(false);
     }
-  };
+  }, [scoreResult, responses, userProfile, addToast]);
 
-  const calculateScore = (responses: AssessmentResponse[]) => {
-    let positiveCount = 0;
-    const dimensionCounts = {
-      'Foundation': { score: 0, max: 3, description: 'Core idea validation & value proposition' },
-      'Market': { score: 0, max: 2, description: 'Customer validation & market demand' },
-      'Execution': { score: 0, max: 2, description: 'Ability to build & iterate' },
-      'Financial': { score: 0, max: 2, description: 'Monetization & runway' },
-      'Personal': { score: 0, max: 1, description: 'Founder readiness & motivation' },
-    };
+  const handleDownloadPDF = () => {
+    if (!scoreResult) return;
 
-    responses.forEach((response, index) => {
-      const answer = response.answer?.toLowerCase() || '';
-      let isPositive = false;
+    setPdfGenerating(true);
 
-      if (
-        answer.includes('yes') ||
-        answer.includes('all-three') ||
-        answer.includes('regularly') ||
-        answer.includes('confirmed') ||
-        answer.includes('under-') ||
-        answer.includes('ready') ||
-        answer.includes('both') ||
-        answer.includes('passion') ||
-        answer.includes('start-imperfect') ||
-        answer.includes('freedom') ||
-        answer.includes('money') ||
-        answer.includes('balance') ||
-        answer.includes('hire')
-      ) {
-        positiveCount++;
-        isPositive = true;
-      }
+    try {
+      const result = {
+        userProfile,
+        responses,
+        scoreResult,
+        dimensionScores,
+        aiRecommendation: aiRecommendation || undefined,
+        timestamp: new Date(),
+        id: Date.now().toString(),
+      };
 
-      if (response.answer && response.answer.length > 50) {
-        positiveCount += 0.5;
-        isPositive = true;
-      }
-
-      // Map to dimensions
-      if (isPositive) {
-        if (index < 3) dimensionCounts['Foundation'].score++;
-        else if (index < 5) dimensionCounts['Market'].score++;
-        else if (index < 7) dimensionCounts['Execution'].score++;
-        else if (index < 9) dimensionCounts['Financial'].score++;
-        else dimensionCounts['Personal'].score++;
-      }
-    });
-
-    const total = Math.min(10, Math.round(positiveCount));
-    const scorePercentage = (total / 10) * 100;
-    let level = '';
-    let timeframe = '';
-    let actionItems: string[] = [];
-
-    if (total >= 8) {
-      level = 'Green Light';
-      timeframe = 'Launch Ready - 2-4 weeks';
-      actionItems = [
-        'Finalize your MVP and launch to your first customers',
-        'Set up analytics to track key metrics',
-        'Prepare your go-to-market strategy',
-      ];
-    } else if (total >= 6) {
-      level = 'Yellow Light';
-      timeframe = 'Near Ready - 1-2 months';
-      actionItems = [
-        'Conduct deeper customer validation interviews',
-        'Refine your value proposition based on feedback',
-        'Build a simple prototype or MVP',
-      ];
-    } else if (total >= 4) {
-      level = 'Orange Light';
-      timeframe = 'Needs Work - 2-3 months';
-      actionItems = [
-        'Talk to at least 20 potential customers',
-        'Validate your problem hypothesis',
-        'Research your competitors thoroughly',
-        'Consider pivoting or refining your idea',
-      ];
-    } else {
-      level = 'Red Light';
-      timeframe = 'High Risk - 3+ months';
-      actionItems = [
-        'Go back to problem discovery',
-        'Find a real pain point people will pay for',
-        'Consider alternative ideas or approaches',
-        'Seek mentorship from experienced entrepreneurs',
-      ];
+      const pdf = generatePDFReport(result);
+      pdf.save(`business-idea-validation-report-${Date.now()}.pdf`);
+      analytics.reportDownloaded('pdf');
+      addToast('PDF report downloaded!', 'success');
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      addToast(
+        'Failed to generate PDF. Please try again.',
+        'error'
+      );
+    } finally {
+      setPdfGenerating(false);
     }
-
-    const dimensions = Object.entries(dimensionCounts).map(([name, data]) => ({
-      dimension: name,
-      score: data.max > 0 ? data.score / data.max : 0,
-      maxScore: data.max,
-      actualScore: data.score,
-      description: data.description,
-    }));
-
-    return { scoreLevel: level, totalPositive: total, dimensions, scorePercentage, timeframe, actionItems };
   };
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email) return;
+    if (!email || !scoreResult) return;
+
+    // Basic client-side email check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      addToast('Please enter a valid email address.', 'error');
+      return;
+    }
+
+    setEmailSending(true);
 
     try {
-      const resultData = {
-        userProfile,
-        responses,
-        scoreResult: {
-          score: Math.round((totalPositive / 10) * 100),
-          level: scoreLevel,
-          title: `${scoreLevel} - ${totalPositive}/10`,
-          summary: `You scored ${totalPositive} out of 10 positive indicators.`,
-          totalPositive: totalPositive,
-          timeframe: '',
-          actionItems: [],
-        },
-        dimensionScores,
-        aiRecommendation: recommendation,
-        timestamp: new Date(),
-        id: Date.now().toString(),
-      };
-
       const response = await fetch('/api/email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
-          name: userProfile.name,
+          name: userProfile.name || '',
           type: 'capture',
-          result: resultData,
+          result: {
+            userProfile,
+            responses,
+            scoreResult,
+            dimensionScores,
+            aiRecommendation,
+            timestamp: new Date().toISOString(),
+            id: Date.now().toString(),
+          },
         }),
       });
 
-      if (response.ok) {
-        setEmailSent(true);
-        analytics.emailCaptured('results_page');
-        setTimeout(() => {
-          setShowEmailForm(false);
-          setEmailSent(false);
-        }, 3000);
+      if (response.status === 429) {
+        addToast('Too many requests. Please wait a moment and try again.', 'error');
+        return;
+      }
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to send email');
+      }
+
+      setEmailSubmitted(true);
+      analytics.emailCaptured('results_page');
+      addToast('Email sent successfully! Check your inbox.', 'success');
+
+      // Fetch AI recommendations after email capture
+      if (!aiRecommendation) {
+        fetchAIRecommendations();
       }
     } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'An unexpected error occurred';
       console.error('Failed to submit email:', error);
-    }
-  };
-
-  const handleDownloadPDF = async () => {
-    try {
-      // Map scoreLevel to proper ScoreLevel type
-      const getScoreLevel = (): 'green' | 'yellow' | 'red' => {
-        const level = scoreLevel.toLowerCase();
-        if (level.includes('green')) return 'green';
-        if (level.includes('yellow')) return 'yellow';
-        return 'red';
-      };
-
-      const resultData: AssessmentResult = {
-        userProfile,
-        responses,
-        scoreResult: {
-          score: Math.round((totalPositive / 10) * 100),
-          level: getScoreLevel(),
-          title: `${scoreLevel} - ${totalPositive}/10`,
-          summary: `You scored ${totalPositive} out of 10 positive indicators.`,
-          totalPositive: totalPositive,
-          timeframe: scoreLevel === 'Green Light' ? '2-4 weeks' : scoreLevel === 'Yellow Light' ? '1-2 months' : scoreLevel === 'Orange Light' ? '2-3 months' : '3+ months',
-          actionItems: scoreLevel === 'Green Light' ? [
-            'Finalize your MVP and launch',
-            'Set up analytics',
-            'Prepare go-to-market strategy',
-          ] : scoreLevel === 'Yellow Light' ? [
-            'Conduct deeper customer validation',
-            'Refine your value proposition',
-            'Build a simple prototype',
-          ] : scoreLevel === 'Orange Light' ? [
-            'Talk to 20+ potential customers',
-            'Validate your problem hypothesis',
-            'Research competitors thoroughly',
-          ] : [
-            'Go back to problem discovery',
-            'Find a real pain point',
-            'Seek mentorship',
-          ],
-        },
-        dimensionScores: dimensionScores.map(d => ({
-          name: d.dimension,
-          score: d.actualScore,
-          maxScore: d.maxScore,
-        })),
-        aiRecommendation: recommendation || undefined,
-        timestamp: new Date(),
-        id: Date.now().toString(),
-      };
-
-      // Use the new React PDF generator
-      const { downloadPDFReport } = await import('@/lib/pdf-generator-v2');
-      await downloadPDFReport(resultData);
-      analytics.reportDownloaded('pdf');
-    } catch (error) {
-      console.error('Failed to download PDF:', error);
-      alert('Failed to generate PDF. Please try again.');
+      addToast(`Email failed: ${message}`, 'error');
+    } finally {
+      setEmailSending(false);
     }
   };
 
   const handleShare = (platform: string) => {
-    const shareText = `I just validated my business idea and got a ${scoreLevel} rating (${totalPositive}/10)! Check out this tool:`;
-    const shareUrl = window.location.origin;
+    if (!scoreResult) return;
+
+    const shareText = generateShareText(scoreResult);
+    const shareUrl = window.location.href;
 
     switch (platform) {
       case 'twitter':
         window.open(
-          `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`,
+          `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+            shareText
+          )}&url=${encodeURIComponent(shareUrl)}`,
           '_blank'
         );
         break;
       case 'linkedin':
         window.open(
-          `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`,
+          `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
+            shareUrl
+          )}`,
+          '_blank'
+        );
+        break;
+      case 'facebook':
+        window.open(
+          `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+            shareUrl
+          )}`,
           '_blank'
         );
         break;
@@ -332,197 +274,198 @@ export default function ResultsPage() {
     analytics.shareClicked(platform);
   };
 
-  const ratingLabels: Record<number, string> = {
-    1: 'Not helpful at all',
-    2: 'Result cannot be implemented',
-    3: 'Just okay',
-    4: 'Great but missed one aspect',
-    5: 'Perfect — exactly what I needed',
-  };
+  if (loading || !scoreResult) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Calculating your score...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const handleRatingSubmit = async (rating: number) => {
-    setSelectedRating(rating);
-    setRatingSubmitted(true);
-    trackEvent('result_rated', { rating, label: ratingLabels[rating], scoreLevel });
-
-    try {
-      const assessmentId = sessionStorage.getItem('assessmentId');
-      await fetch('/api/ratings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          assessmentId,
-          rating,
-          label: ratingLabels[rating],
-          scoreLevel,
-          totalPositive,
-        }),
-      });
-    } catch (err) {
-      console.error('Failed to save rating:', err);
-    }
-
-    setTimeout(() => setShowRatingModal(false), 2000);
-  };
+  const radarData = dimensionScores.map((dim) => ({
+    dimension: dim.name,
+    score: dim.score,
+    maxScore: dim.maxScore,
+  }));
 
   const getScoreColor = (level: string) => {
     switch (level) {
-      case 'Green Light':
-        return { bg: 'bg-green-500', text: 'text-green-600', lightBg: 'bg-green-50', border: 'border-green-500', barBg: 'bg-green-500' };
-      case 'Yellow Light':
-        return { bg: 'bg-yellow-500', text: 'text-yellow-600', lightBg: 'bg-yellow-50', border: 'border-yellow-500', barBg: 'bg-yellow-500' };
-      case 'Orange Light':
-        return { bg: 'bg-orange-500', text: 'text-orange-600', lightBg: 'bg-orange-50', border: 'border-orange-500', barBg: 'bg-orange-500' };
-      case 'Red Light':
-        return { bg: 'bg-red-500', text: 'text-red-600', lightBg: 'bg-red-50', border: 'border-red-500', barBg: 'bg-red-500' };
+      case 'green':
+        return 'bg-green-500';
+      case 'yellow':
+        return 'bg-yellow-500';
+      case 'red':
+        return 'bg-red-500';
       default:
-        return { bg: 'bg-gray-500', text: 'text-gray-600', lightBg: 'bg-gray-50', border: 'border-gray-500', barBg: 'bg-gray-500' };
+        return 'bg-gray-500';
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary mb-4"></div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Calculating Your Results...</h2>
-          <p className="text-gray-600">Please wait while we analyze your responses</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
-          <FiAlertCircle className="text-5xl text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Oops!</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <button
-            onClick={() => router.push('/assessment')}
-            className="w-full btn btn-primary py-3 rounded-xl font-bold"
-          >
-            Start New Assessment
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const scoreColors = getScoreColor(scoreLevel);
-  const scorePercentage = (totalPositive / 10) * 100;
+  const getScoreIcon = (level: string) => {
+    switch (level) {
+      case 'green':
+        return <FiCheckCircle className="text-4xl text-white" />;
+      case 'yellow':
+        return <FiAlertCircle className="text-4xl text-white" />;
+      case 'red':
+        return <FiAlertCircle className="text-4xl text-white" />;
+      default:
+        return null;
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4">
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <button
-            onClick={() => router.push('/')}
-            className="inline-flex items-center gap-2 text-sm font-medium text-primary bg-white border border-gray-200 px-3 py-2 rounded-lg shadow-sm transition transform duration-150 hover:-translate-y-1 hover:shadow-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/30"
-          >
-            <FiArrowLeft />
-            Back to Home
-          </button>
-        </div>
+    <div className="min-h-screen bg-background py-12 px-4">
+      <ToastContainer />
 
-        {/* Score Card */}
-        <div className={`${scoreColors.bg} rounded-3xl shadow-2xl p-8 text-white mb-8`}>
-          <div className="text-center">
-            <h1 className="text-4xl font-bold mb-2">Your Business Idea Assessment</h1>
-            {userProfile.name && (
-              <p className="text-xl opacity-90 mb-4">{userProfile.name}</p>
-            )}
-            <div className="flex items-center justify-center gap-4 mt-6">
-              <div className="text-8xl font-bold">{totalPositive}</div>
-              <div className="text-left">
-                <p className="text-3xl font-semibold">/ 10</p>
-                <p className="text-xl font-medium mt-2">{scoreLevel}</p>
+      <div className="max-w-5xl mx-auto">
+        {/* Score Header */}
+        <div
+          className={`${getScoreColor(scoreResult.level)} rounded-2xl shadow-2xl px-8 py-5 mb-8 text-white`}
+        >
+          <div className="flex items-center justify-center gap-6">
+            <div className="flex-shrink-0">{getScoreIcon(scoreResult.level)}</div>
+            <div>
+              <div className="flex items-baseline gap-3">
+                <h1 className="text-4xl font-bold">{scoreResult.score}%</h1>
+                <h2 className="text-xl font-semibold opacity-90">{scoreResult.title}</h2>
               </div>
-            </div>
-            <div className="mt-6">
-              <div className="bg-white bg-opacity-30 rounded-full h-4 w-64 mx-auto overflow-hidden">
-                <div
-                  className="bg-white h-full rounded-full transition-all duration-1000"
-                  style={{ width: `${scorePercentage}%` }}
-                />
-              </div>
-              <p className="mt-2 text-lg opacity-90">{Math.round(scorePercentage)}% Ready</p>
+              <p className="text-base opacity-90 mt-1">{scoreResult.summary}</p>
             </div>
           </div>
         </div>
 
-        {/* Dimension Scores - Better Visualization */}
+        {/* Radar Chart */}
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-          <h3 className="text-2xl font-bold text-center mb-8 text-gray-900">
+          <h3 className="text-2xl font-bold text-center mb-6 text-gray-900">
             Your Readiness Breakdown
           </h3>
-          <div className="space-y-6">
-            {dimensionScores.map((item, index) => {
-              const score = Math.round(item.score * 100);
-              let barColor = 'bg-green-500';
-              let textColor = 'text-green-600';
-              if (score < 50) {
-                barColor = 'bg-red-500';
-                textColor = 'text-red-600';
-              } else if (score < 75) {
-                barColor = 'bg-yellow-500';
-                textColor = 'text-yellow-600';
-              }
-
-              return (
-                <div key={index} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-bold text-gray-800">{item.dimension}</h4>
-                      <p className="text-sm text-gray-600">{item.description}</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-gray-600">
-                        {item.actualScore}/{item.maxScore}
-                      </span>
-                      <span className={`${barColor} text-white text-sm font-bold px-4 py-2 rounded-full min-w-[60px] text-center`}>
-                        {score}%
-                      </span>
-                    </div>
-                  </div>
-                  <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-1000 ${barColor}`}
-                      style={{ width: `${score}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <ResponsiveContainer width="100%" height={400}>
+            <RadarChart data={radarData}>
+              <PolarGrid stroke="#e5e7eb" />
+              <PolarAngleAxis
+                dataKey="dimension"
+                tick={{ fill: '#6b7280', fontSize: 12 }}
+              />
+              <PolarRadiusAxis
+                angle={90}
+                domain={[0, 1]}
+                tick={false}
+                axisLine={false}
+              />
+              <Radar
+                name="Score"
+                dataKey="score"
+                stroke="#245EA6"
+                fill="#245EA6"
+                fillOpacity={0.6}
+              />
+            </RadarChart>
+          </ResponsiveContainer>
         </div>
 
-        {/* AI Loading */}
-        {aiLoading && (
-          <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-primary mx-auto mb-4"></div>
-            <p className="text-gray-600">Generating your personalized AI recommendations...</p>
-            <p className="text-sm text-gray-500 mt-2">This may take 10-20 seconds</p>
+        {/* Action Items */}
+        <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+          <h3 className="text-2xl font-bold mb-4 text-gray-900">
+            Your Next Steps
+          </h3>
+          <p className="text-primary font-semibold mb-4">
+            Timeframe: {scoreResult.timeframe}
+          </p>
+          <ul className="space-y-3">
+            {scoreResult.actionItems.map((item, index) => (
+              <li key={index} className="flex gap-3">
+                <FiCheckCircle className="text-green-500 flex-shrink-0 mt-1" />
+                <span className="text-gray-700">{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Email Capture for AI Recommendations */}
+        {!emailSubmitted && !aiRecommendation && (
+          <div className="bg-primary rounded-2xl shadow-xl p-8 mb-8 text-white">
+            <h3 className="text-2xl font-bold mb-2 text-center">
+              Get Your Personalized AI Roadmap
+            </h3>
+            <p className="text-center mb-6 opacity-90">
+              Enter your email to receive detailed AI-powered recommendations
+              and a comprehensive PDF report
+            </p>
+            <form
+              onSubmit={handleEmailSubmit}
+              className="max-w-md mx-auto flex gap-3"
+            >
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                required
+                className="flex-1 px-4 py-3 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-white focus:outline-none"
+              />
+              <button
+                type="submit"
+                disabled={emailSending}
+                className={`px-6 py-3 bg-white text-primary rounded-lg font-semibold transition-all duration-300 ${
+                  emailSending
+                    ? 'opacity-50 cursor-not-allowed'
+                    : 'hover:shadow-lg'
+                }`}
+              >
+                {emailSending ? 'Sending...' : 'Get Report'}
+              </button>
+            </form>
           </div>
         )}
 
-        {/* AI Recommendations */}
-        {recommendation && (
+        {/* AI Recommendations Loading */}
+        {aiLoading && (
+          <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-primary mx-auto mb-4"></div>
+            <p className="text-gray-600">
+              Generating your personalized AI recommendations...
+            </p>
+            <p className="text-sm text-gray-400 mt-2">
+              This may take 15-30 seconds
+            </p>
+          </div>
+        )}
+
+        {/* AI Error State */}
+        {aiError && !aiLoading && (
+          <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 border-2 border-red-200">
+            <div className="text-center">
+              <FiAlertCircle className="text-4xl text-red-500 mx-auto mb-3" />
+              <h3 className="text-lg font-bold text-gray-900 mb-2">
+                Could not generate AI recommendations
+              </h3>
+              <p className="text-gray-600 mb-4">{aiError}</p>
+              <button
+                onClick={fetchAIRecommendations}
+                className="btn btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-lg font-semibold"
+              >
+                <FiRefreshCw />
+                Try Again
+              </button>
+            </div>
+          </div>
+        )}
+
+        {aiRecommendation && (
           <>
             {/* Strengths */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-              <div className="flex items-center gap-3 mb-4">
-                <FiCheckCircle className="text-3xl text-green-500" />
-                <h2 className="text-2xl font-bold text-gray-800">Your Strengths</h2>
-              </div>
-              <ul className="space-y-3">
-                {recommendation.strengths.map((strength, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-sm font-bold mt-0.5">
-                      ✓
-                    </span>
+            <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+              <h3 className="text-2xl font-bold mb-4 text-green-600">
+                Your Strengths
+              </h3>
+              <ul className="space-y-2">
+                {aiRecommendation.strengths.map((strength, index) => (
+                  <li key={index} className="flex gap-3">
+                    <FiCheckCircle className="text-green-500 flex-shrink-0 mt-1" />
                     <span className="text-gray-700">{strength}</span>
                   </li>
                 ))}
@@ -530,17 +473,14 @@ export default function ResultsPage() {
             </div>
 
             {/* Gaps */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-              <div className="flex items-center gap-3 mb-4">
-                <FiAlertCircle className="text-3xl text-orange-500" />
-                <h2 className="text-2xl font-bold text-gray-800">Areas to Address</h2>
-              </div>
-              <ul className="space-y-3">
-                {recommendation.gaps.map((gap, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-sm font-bold mt-0.5">
-                      !
-                    </span>
+            <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+              <h3 className="text-2xl font-bold mb-4 text-orange-600">
+                Areas to Improve
+              </h3>
+              <ul className="space-y-2">
+                {aiRecommendation.gaps.map((gap, index) => (
+                  <li key={index} className="flex gap-3">
+                    <FiAlertCircle className="text-orange-500 flex-shrink-0 mt-1" />
                     <span className="text-gray-700">{gap}</span>
                   </li>
                 ))}
@@ -548,31 +488,31 @@ export default function ResultsPage() {
             </div>
 
             {/* Personalized Plan */}
-            <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl shadow-lg p-6 mb-6">
-              <div className="flex items-center gap-3 mb-4">
-                <FiTrendingUp className="text-3xl text-purple-600" />
-                <h2 className="text-2xl font-bold text-gray-800">Your Personalized Action Plan</h2>
-              </div>
-              <div className="text-gray-700 whitespace-pre-line leading-relaxed">
-                {recommendation.personalizedPlan}
-              </div>
+            <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+              <h3 className="text-2xl font-bold mb-4 text-gray-900">
+                Your Personalized Action Plan
+              </h3>
+              <p className="text-gray-700 whitespace-pre-line">
+                {aiRecommendation.personalizedPlan}
+              </p>
             </div>
 
             {/* Weekly Roadmap */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-              <div className="flex items-center gap-3 mb-4">
-                <FiCalendar className="text-3xl text-blue-600" />
-                <h2 className="text-2xl font-bold text-gray-800">Week-by-Week Roadmap</h2>
-              </div>
-              <div className="space-y-4">
-                {recommendation.weeklyRoadmap.map((week, index) => (
-                  <div key={index} className="border-l-4 border-blue-500 pl-4">
-                    <h3 className="font-bold text-lg text-gray-800 mb-2">Week {week.week}</h3>
+            <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+              <h3 className="text-2xl font-bold mb-6 text-gray-900">
+                Week-by-Week Roadmap
+              </h3>
+              <div className="space-y-6">
+                {aiRecommendation.weeklyRoadmap.map((week, index) => (
+                  <div key={index} className="border-l-4 border-primary pl-6">
+                    <h4 className="text-xl font-bold mb-3 text-primary">
+                      Week {week.week}
+                    </h4>
                     <ul className="space-y-2">
                       {week.tasks.map((task, taskIndex) => (
-                        <li key={taskIndex} className="flex items-start gap-2 text-gray-700">
-                          <span className="text-blue-500 mt-1">→</span>
-                          <span>{task}</span>
+                        <li key={taskIndex} className="flex gap-3">
+                          <span className="text-gray-400">&#9633;</span>
+                          <span className="text-gray-700">{task}</span>
                         </li>
                       ))}
                     </ul>
@@ -582,189 +522,150 @@ export default function ResultsPage() {
             </div>
 
             {/* Resources */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-              <div className="flex items-center gap-3 mb-4">
-                <FiBook className="text-3xl text-indigo-600" />
-                <h2 className="text-2xl font-bold text-gray-800">Recommended Resources</h2>
-              </div>
-              <div className="grid gap-4">
-                {recommendation.resources.map((resource, index) => (
-                  <div key={index} className="p-4 bg-indigo-50 rounded-xl">
-                    <h3 className="font-bold text-gray-800 mb-1">{resource.title}</h3>
-                    <p className="text-gray-700 text-sm">{resource.description}</p>
+            <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+              <h3 className="text-2xl font-bold mb-6 text-gray-900">
+                Recommended Resources
+              </h3>
+              <div className="space-y-4">
+                {aiRecommendation.resources.map((resource, index) => (
+                  <div key={index} className="p-4 bg-surface rounded-lg">
+                    <h4 className="font-bold text-gray-900 mb-2">
+                      {resource.title}
+                    </h4>
+                    <p className="text-gray-700">{resource.description}</p>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Risk Assessment */}
-            <div className={`${scoreColors.lightBg} border-l-4 ${scoreColors.border} rounded-r-2xl shadow-lg p-6 mb-6`}>
-              <div className="flex items-center gap-3 mb-4">
-                <FiAlertTriangle className={`text-3xl ${scoreColors.text}`} />
-                <h2 className="text-2xl font-bold text-gray-800">Risk Assessment</h2>
-              </div>
-              <div className="text-gray-700 whitespace-pre-line leading-relaxed">
-                {recommendation.riskAssessment}
-              </div>
+            <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+              <h3 className="text-2xl font-bold mb-4 text-gray-900">
+                Risk Assessment
+              </h3>
+              <p className="text-gray-700 whitespace-pre-line">
+                {aiRecommendation.riskAssessment}
+              </p>
             </div>
           </>
         )}
 
-        {/* Action Buttons */}
+        {/* Actions */}
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-          <h3 className="text-2xl font-bold mb-6 text-center text-gray-900">Take Action</h3>
-          <div className="flex flex-wrap justify-center gap-4 mb-6">
-            <button
-              onClick={handleDownloadPDF}
-              className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors shadow-lg hover:shadow-xl"
-            >
-              <FiDownload />
-              Download PDF Report
-            </button>
+          <h3 className="text-2xl font-bold mb-6 text-center text-gray-900">
+            Take Action
+          </h3>
+          <div className="flex flex-wrap justify-center gap-4">
+            <div className="flex flex-col items-center gap-1">
+              <button
+                onClick={handleDownloadPDF}
+                disabled={pdfGenerating}
+                className={`btn btn-primary flex items-center gap-2 px-6 py-3 rounded-lg font-semibold ${
+                  pdfGenerating ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                {pdfGenerating ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <FiDownload />
+                    Download PDF Report
+                  </>
+                )}
+              </button>
+              <p className="text-xs text-gray-400">Includes cover page, dimension analysis, AI insights &amp; weekly roadmap</p>
+            </div>
 
             <button
               onClick={() => setShowEmailForm(!showEmailForm)}
-              className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl"
+              className="btn btn-primary flex items-center gap-2 px-6 py-3 rounded-lg font-semibold"
             >
               <FiMail />
-              Email Me Results
+              Email Results
             </button>
 
-            <button
-              onClick={() => handleShare('twitter')}
-              className="flex items-center gap-2 px-6 py-3 bg-gray-700 text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors shadow-lg hover:shadow-xl"
+            <div className="relative">
+              <button
+                onClick={() => handleShare('twitter')}
+                className="flex items-center gap-2 px-6 py-3 bg-gray-700 text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors"
+              >
+                <FiShare2 />
+                Share
+              </button>
+            </div>
+
+            <a
+              href="/assessment/retake"
+              className="flex items-center gap-2 px-6 py-3 bg-white text-primary border-2 border-gray-200 rounded-lg font-semibold hover:border-primary hover:bg-primary-10 transition-colors"
             >
-              <FiShare2 />
-              Share on X
-            </button>
+              <FiRefreshCw />
+              Retake Assessment
+            </a>
           </div>
 
-          {/* Email Form */}
-          {showEmailForm && (
-            <div className="mt-6 p-6 bg-gray-50 rounded-xl border-2 border-gray-200">
-              <h4 className="font-bold text-gray-800 mb-3">Get Your Results via Email</h4>
-              <p className="text-sm text-gray-600 mb-4">
-                We'll send you a comprehensive report with all your results and AI recommendations.
-              </p>
-              {emailSent ? (
-                <div className="p-4 bg-green-50 border-2 border-green-500 rounded-lg text-center">
-                  <FiCheckCircle className="text-3xl text-green-500 mx-auto mb-2" />
-                  <p className="text-green-700 font-semibold">Email sent successfully!</p>
-                  <p className="text-sm text-green-600 mt-1">Check your inbox for your report.</p>
-                </div>
-              ) : (
-                <form onSubmit={handleEmailSubmit} className="flex gap-3">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="your@email.com"
-                    required
-                    className="flex-1 px-4 py-3 rounded-lg border-2 border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none"
-                  />
-                  <button
-                    type="submit"
-                    className="px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                  >
-                    Send Report
-                  </button>
-                </form>
-              )}
-            </div>
+          {/* Inline email form when "Email Results" is clicked */}
+          {showEmailForm && !emailSubmitted && (
+            <form
+              onSubmit={handleEmailSubmit}
+              className="mt-6 max-w-md mx-auto flex gap-3"
+            >
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                required
+                className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+              />
+              <button
+                type="submit"
+                disabled={emailSending}
+                className={`btn btn-primary px-6 py-3 rounded-lg font-semibold ${
+                  emailSending ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                {emailSending ? 'Sending...' : 'Send'}
+              </button>
+            </form>
+          )}
+
+          {showEmailForm && emailSubmitted && (
+            <p className="mt-6 text-center text-green-600 font-semibold">
+              <FiCheckCircle className="inline mr-1" />
+              Email sent! Check your inbox.
+            </p>
           )}
         </div>
 
-        {/* Rating Modal */}
-        {showRatingModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-            <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full relative animate-fade-in">
-              <button
-                onClick={() => setShowRatingModal(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none"
-                aria-label="Close"
-              >
-                ×
-              </button>
-
-              {ratingSubmitted ? (
-                <div className="text-center py-4">
-                  <div className="text-5xl mb-4">🙏</div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-2">Thank you!</h3>
-                  <p className="text-gray-600">Your feedback helps us improve.</p>
-                </div>
-              ) : (
-                <>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-2 text-center">
-                    Rate the Result
-                  </h3>
-                  <p className="text-gray-500 text-center mb-6 text-sm">
-                    How useful were your results?
-                  </p>
-
-                  {/* Stars */}
-                  <div className="flex justify-center gap-3 mb-4">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        onClick={() => handleRatingSubmit(star)}
-                        onMouseEnter={() => setHoveredRating(star)}
-                        onMouseLeave={() => setHoveredRating(0)}
-                        className="text-4xl transition-transform duration-100 hover:scale-125 focus:outline-none"
-                        aria-label={`Rate ${star} out of 5`}
-                      >
-                        <span className={star <= (hoveredRating || selectedRating) ? 'text-yellow-400' : 'text-gray-300'}>
-                          ★
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Hover label */}
-                  <div className="min-h-[24px] text-center">
-                    {hoveredRating > 0 && (
-                      <p className="text-sm font-medium text-gray-600">
-                        {hoveredRating}/5 — {ratingLabels[hoveredRating]}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Rating guide */}
-                  <div className="mt-6 space-y-2 border-t pt-4">
-                    {[5, 4, 3, 2, 1].map((n) => (
-                      <div key={n} className="flex items-center gap-2 text-xs text-gray-500">
-                        <span className="text-yellow-400 font-bold w-4">{n}★</span>
-                        <span>{ratingLabels[n]}</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* CTA */}
         <div className="bg-primary rounded-2xl shadow-xl p-8 text-white text-center">
-          <h3 className="text-3xl font-bold mb-4">Ready to Accelerate Your Journey?</h3>
+          <h3 className="text-3xl font-bold mb-4">
+            Ready to Accelerate Your Journey?
+          </h3>
           <p className="text-lg mb-6 opacity-90">
             Get 1-on-1 expert guidance to turn your idea into reality
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="https://calendly.com/beamxsolutions"
+              href="https://calendly.com/beamx-solutions"
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => analytics.ctaClicked('book_consultation', 'results')}
-              className="px-8 py-3 bg-white text-purple-600 rounded-lg font-semibold hover:shadow-lg transition-all duration-300"
+              onClick={() =>
+                analytics.ctaClicked('book_consultation', 'results')
+              }
+              className="px-8 py-3 bg-white text-primary rounded-lg font-semibold hover:shadow-lg transition-all duration-300"
             >
               Book Free Consultation
             </a>
-            <button
-              onClick={() => router.push('/assessment')}
-              className="px-8 py-3 bg-transparent border-2 border-white text-white rounded-lg font-semibold hover:bg-white hover:text-purple-600 transition-all duration-300"
+            <a
+              href="/"
+              className="px-8 py-3 bg-transparent border-2 border-white text-white rounded-lg font-semibold hover:bg-white hover:text-primary transition-all duration-300"
             >
-              Take Another Assessment
-            </button>
+              Back to Home
+            </a>
           </div>
         </div>
       </div>
