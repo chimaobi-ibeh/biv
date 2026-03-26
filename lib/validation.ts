@@ -53,7 +53,7 @@ export const emailRequestSchema = z.object({
       responses: z.array(z.record(z.string(), z.unknown())).optional(),
       scoreResult: z.record(z.string(), z.unknown()).optional(),
       dimensionScores: z.array(z.record(z.string(), z.unknown())).optional(),
-      aiRecommendation: z.record(z.string(), z.unknown()).optional(),
+      aiRecommendation: z.record(z.string(), z.unknown()).nullable().optional(),
       timestamp: z.unknown().optional(),
       id: z.string().optional(),
     })
