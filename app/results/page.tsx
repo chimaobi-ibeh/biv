@@ -84,6 +84,46 @@ export default function ResultsPage() {
       if (data.userProfile?.email) {
         setEmail(data.userProfile.email);
       }
+
+      // Auto-trigger AI recommendations using the score we just calculated
+      setAiLoading(true);
+      setAiError(null);
+      analytics.aiRecommendationRequested();
+      const startTime = Date.now();
+
+      fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          responses: data.responses,
+          userProfile: data.userProfile || {},
+          scoreLevel: score.level,
+          totalPositive: score.totalPositive,
+        }),
+      })
+        .then(async (res) => {
+          if (res.status === 429) {
+            const d = await res.json();
+            const retrySeconds = d.retryAfterSeconds || 60;
+            setAiError(`Too many requests. Please wait ${retrySeconds} seconds and try again.`);
+            addToast(`Rate limit reached. Please wait ${retrySeconds} seconds.`, 'error');
+            return;
+          }
+          if (!res.ok) {
+            const d = await res.json().catch(() => ({}));
+            throw new Error(d.error || `Server error (${res.status})`);
+          }
+          const d = await res.json();
+          setAIRecommendation(d.recommendation);
+          analytics.aiRecommendationReceived(Date.now() - startTime);
+        })
+        .catch((err) => {
+          const message = err instanceof Error ? err.message : 'An unexpected error occurred';
+          setAiError(message);
+          analytics.aiRecommendationFailed(message);
+          addToast(`Failed to generate recommendations: ${message}`, 'error');
+        })
+        .finally(() => setAiLoading(false));
     } catch (error) {
       console.error('Failed to load assessment data:', error);
       addToast('Could not load your assessment data. Redirecting to start over.', 'error');
@@ -385,43 +425,6 @@ export default function ResultsPage() {
           </ul>
         </div>
 
-        {/* Email Capture for AI Recommendations */}
-        {!emailSubmitted && !aiRecommendation && (
-          <div className="bg-primary rounded-2xl shadow-xl p-8 mb-8 text-white">
-            <h3 className="text-2xl font-bold mb-2 text-center">
-              Get Your Personalized AI Roadmap
-            </h3>
-            <p className="text-center mb-6 opacity-90">
-              Enter your email to receive detailed AI-powered recommendations
-              and a comprehensive PDF report
-            </p>
-            <form
-              onSubmit={handleEmailSubmit}
-              className="max-w-md mx-auto flex gap-3"
-            >
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                required
-                className="flex-1 px-4 py-3 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-white focus:outline-none"
-              />
-              <button
-                type="submit"
-                disabled={emailSending}
-                className={`px-6 py-3 bg-white text-primary rounded-lg font-semibold transition-all duration-300 ${
-                  emailSending
-                    ? 'opacity-50 cursor-not-allowed'
-                    : 'hover:shadow-lg'
-                }`}
-              >
-                {emailSending ? 'Sending...' : 'Get Report'}
-              </button>
-            </form>
-          </div>
-        )}
-
         {/* AI Recommendations Loading */}
         {aiLoading && (
           <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 text-center">
@@ -558,9 +561,10 @@ export default function ResultsPage() {
           <div className="flex flex-wrap justify-center gap-4">
             <button
               onClick={handleDownloadPDF}
-              disabled={pdfGenerating}
+              disabled={pdfGenerating || aiLoading}
+              title={aiLoading ? 'AI insights are being generated...' : undefined}
               className={`btn btn-primary flex items-center gap-2 px-6 py-3 rounded-lg font-semibold ${
-                pdfGenerating ? 'opacity-50 cursor-not-allowed' : ''
+                pdfGenerating || aiLoading ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
               {pdfGenerating ? (
