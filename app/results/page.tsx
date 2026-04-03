@@ -407,24 +407,6 @@ export default function ResultsPage() {
           </ResponsiveContainer>
         </div>
 
-        {/* Action Items */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-          <h3 className="text-2xl font-bold mb-4 text-gray-900">
-            Your Next Steps
-          </h3>
-          <p className="text-primary font-semibold mb-4">
-            Timeframe: {scoreResult.timeframe}
-          </p>
-          <ul className="space-y-3">
-            {scoreResult.actionItems.map((item, index) => (
-              <li key={index} className="flex gap-3">
-                <FiCheckCircle className="text-green-500 flex-shrink-0 mt-1" />
-                <span className="text-gray-700">{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
         {/* AI Recommendations Loading */}
         {aiLoading && (
           <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 text-center">

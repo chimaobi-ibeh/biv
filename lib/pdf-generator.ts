@@ -211,25 +211,6 @@ export function generatePDFReport(result: AssessmentResult): jsPDF {
   doc.text(`Recommended Timeframe:  ${scoreResult.timeframe}`, MARGIN + 5, y + 33);
   y += 44;
 
-  // Immediate next steps
-  doc.setFontSize(13);
-  doc.setTextColor(blue[0], blue[1], blue[2]);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Immediate Next Steps', MARGIN, y);
-  y += 8;
-
-  scoreResult.actionItems.forEach((item, idx) => {
-    y = safeY(y, 10, () => pageHeader('EXECUTIVE SUMMARY (continued)'));
-    doc.setDrawColor(blue[0], blue[1], blue[2]);
-    doc.setLineWidth(0.5);
-    doc.rect(MARGIN, y - 3, 4, 4);
-    doc.setFontSize(10);
-    doc.setTextColor(textDark[0], textDark[1], textDark[2]);
-    doc.setFont('helvetica', 'normal');
-    const lines = doc.splitTextToSize(`${idx + 1}.  ${item}`, CONTENT_W - 10);
-    doc.text(lines, MARGIN + 7, y);
-    y += lines.length * 5 + 3;
-  });
 
   // ══════════════════════════════════════════════════════════════════
   // PAGE 3 – DIMENSION ANALYSIS

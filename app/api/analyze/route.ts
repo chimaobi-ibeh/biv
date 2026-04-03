@@ -88,8 +88,8 @@ export async function POST(request: NextRequest) {
     );
 
     const message = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 2000,
+      model: 'claude-sonnet-4-5',
+      max_tokens: 4096,
       messages: [{ role: 'user', content: prompt }],
     });
 
@@ -174,8 +174,11 @@ Be specific, actionable, and honest. If they're not ready, say so clearly. If th
 
 function parseAIResponse(text: string): AIRecommendation {
   try {
+    // Strip markdown code fences if present
+    const stripped = text.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+
     // Try to extract JSON from the response
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const jsonMatch = stripped.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
 
@@ -214,6 +217,13 @@ function parseAIResponse(text: string): AIRecommendation {
     };
   } catch (error) {
     console.error('Failed to parse AI response:', error);
-    throw new Error('Invalid AI response format');
+    return {
+      strengths: ['AI analysis completed. See detailed report.'],
+      gaps: ['Review your responses carefully.'],
+      personalizedPlan: text.slice(0, 2000),
+      weeklyRoadmap: [{ week: 1, tasks: ['Review AI recommendations', 'Take action on identified gaps'] }],
+      resources: [{ title: 'BeamX Consulting', description: 'Get personalized 1-on-1 guidance' }],
+      riskAssessment: 'Continue building on your strengths while addressing gaps.',
+    };
   }
 }
