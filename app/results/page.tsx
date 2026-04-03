@@ -358,37 +358,37 @@ export default function ResultsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background py-12 px-4">
+    <div className="min-h-screen bg-background py-8 px-3 sm:py-12 sm:px-4">
       <ToastContainer />
 
       <div className="max-w-5xl mx-auto">
         {/* Score Header */}
         <div
-          className={`${getScoreColor(scoreResult.level)} rounded-2xl shadow-2xl px-8 py-5 mb-8 text-white`}
+          className={`${getScoreColor(scoreResult.level)} rounded-2xl shadow-2xl px-4 py-5 sm:px-8 mb-6 sm:mb-8 text-white`}
         >
-          <div className="flex items-center justify-center gap-6">
+          <div className="flex flex-col items-center text-center gap-3 sm:flex-row sm:text-left sm:gap-6">
             <div className="flex-shrink-0">{getScoreIcon(scoreResult.level)}</div>
             <div>
-              <div className="flex items-baseline gap-3">
-                <h1 className="text-4xl font-bold">{scoreResult.score}%</h1>
-                <h2 className="text-xl font-semibold opacity-90">{scoreResult.title}</h2>
+              <div className="flex items-baseline justify-center sm:justify-start gap-2 sm:gap-3">
+                <h1 className="text-3xl sm:text-4xl font-bold">{scoreResult.score}%</h1>
+                <h2 className="text-lg sm:text-xl font-semibold opacity-90">{scoreResult.title}</h2>
               </div>
-              <p className="text-base opacity-90 mt-1">{scoreResult.summary}</p>
+              <p className="text-sm sm:text-base opacity-90 mt-1">{scoreResult.summary}</p>
             </div>
           </div>
         </div>
 
         {/* Radar Chart */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-          <h3 className="text-2xl font-bold text-center mb-6 text-gray-900">
+        <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-8 mb-6 sm:mb-8">
+          <h3 className="text-xl sm:text-2xl font-bold text-center mb-4 sm:mb-6 text-gray-900">
             Your Readiness Breakdown
           </h3>
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer width="100%" height={280} className="sm:!h-[400px]">
             <RadarChart data={radarData}>
               <PolarGrid stroke="#e5e7eb" />
               <PolarAngleAxis
                 dataKey="dimension"
-                tick={{ fill: '#6b7280', fontSize: 12 }}
+                tick={{ fill: '#6b7280', fontSize: 10 }}
               />
               <PolarRadiusAxis
                 angle={90}
@@ -409,7 +409,7 @@ export default function ResultsPage() {
 
         {/* AI Recommendations Loading */}
         {aiLoading && (
-          <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 text-center">
+          <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 mb-6 sm:mb-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-primary mx-auto mb-4"></div>
             <p className="text-gray-600">
               Generating your personalized AI recommendations...
@@ -422,7 +422,7 @@ export default function ResultsPage() {
 
         {/* AI Error State */}
         {aiError && !aiLoading && (
-          <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 border-2 border-red-200">
+          <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 mb-6 sm:mb-8 border-2 border-red-200">
             <div className="text-center">
               <FiAlertCircle className="text-4xl text-red-500 mx-auto mb-3" />
               <h3 className="text-lg font-bold text-gray-900 mb-2">
@@ -443,61 +443,61 @@ export default function ResultsPage() {
         {aiRecommendation && (
           <>
             {/* Strengths */}
-            <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-              <h3 className="text-2xl font-bold mb-4 text-green-600">
+            <div className="bg-white rounded-2xl shadow-xl p-5 sm:p-8 mb-6 sm:mb-8">
+              <h3 className="text-xl sm:text-2xl font-bold mb-4 text-green-600">
                 Your Strengths
               </h3>
-              <ul className="space-y-2">
+              <ul className="space-y-3">
                 {aiRecommendation.strengths.map((strength, index) => (
                   <li key={index} className="flex gap-3">
                     <FiCheckCircle className="text-green-500 flex-shrink-0 mt-1" />
-                    <span className="text-gray-700">{strength}</span>
+                    <span className="text-gray-700 text-sm sm:text-base">{strength}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
             {/* Gaps */}
-            <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-              <h3 className="text-2xl font-bold mb-4 text-orange-600">
+            <div className="bg-white rounded-2xl shadow-xl p-5 sm:p-8 mb-6 sm:mb-8">
+              <h3 className="text-xl sm:text-2xl font-bold mb-4 text-orange-600">
                 Areas to Improve
               </h3>
-              <ul className="space-y-2">
+              <ul className="space-y-3">
                 {aiRecommendation.gaps.map((gap, index) => (
                   <li key={index} className="flex gap-3">
                     <FiAlertCircle className="text-orange-500 flex-shrink-0 mt-1" />
-                    <span className="text-gray-700">{gap}</span>
+                    <span className="text-gray-700 text-sm sm:text-base">{gap}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
             {/* Personalized Plan */}
-            <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-              <h3 className="text-2xl font-bold mb-4 text-gray-900">
+            <div className="bg-white rounded-2xl shadow-xl p-5 sm:p-8 mb-6 sm:mb-8">
+              <h3 className="text-xl sm:text-2xl font-bold mb-4 text-gray-900">
                 Your Personalized Action Plan
               </h3>
-              <p className="text-gray-700 whitespace-pre-line">
+              <p className="text-gray-700 text-sm sm:text-base whitespace-pre-line">
                 {aiRecommendation.personalizedPlan}
               </p>
             </div>
 
             {/* Weekly Roadmap */}
-            <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-              <h3 className="text-2xl font-bold mb-6 text-gray-900">
+            <div className="bg-white rounded-2xl shadow-xl p-5 sm:p-8 mb-6 sm:mb-8">
+              <h3 className="text-xl sm:text-2xl font-bold mb-5 sm:mb-6 text-gray-900">
                 Week-by-Week Roadmap
               </h3>
-              <div className="space-y-6">
+              <div className="space-y-5 sm:space-y-6">
                 {aiRecommendation.weeklyRoadmap.map((week, index) => (
-                  <div key={index} className="border-l-4 border-primary pl-6">
-                    <h4 className="text-xl font-bold mb-3 text-primary">
+                  <div key={index} className="border-l-4 border-primary pl-4 sm:pl-6">
+                    <h4 className="text-lg sm:text-xl font-bold mb-2 sm:mb-3 text-primary">
                       Week {week.week}
                     </h4>
                     <ul className="space-y-2">
                       {week.tasks.map((task, taskIndex) => (
                         <li key={taskIndex} className="flex gap-3">
-                          <span className="text-gray-400">&#9633;</span>
-                          <span className="text-gray-700">{task}</span>
+                          <span className="text-gray-400 flex-shrink-0">&#9633;</span>
+                          <span className="text-gray-700 text-sm sm:text-base">{task}</span>
                         </li>
                       ))}
                     </ul>
@@ -507,28 +507,28 @@ export default function ResultsPage() {
             </div>
 
             {/* Resources */}
-            <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-              <h3 className="text-2xl font-bold mb-6 text-gray-900">
+            <div className="bg-white rounded-2xl shadow-xl p-5 sm:p-8 mb-6 sm:mb-8">
+              <h3 className="text-xl sm:text-2xl font-bold mb-5 sm:mb-6 text-gray-900">
                 Recommended Resources
               </h3>
               <div className="space-y-4">
                 {aiRecommendation.resources.map((resource, index) => (
                   <div key={index} className="p-4 bg-surface rounded-lg">
-                    <h4 className="font-bold text-gray-900 mb-2">
+                    <h4 className="font-bold text-gray-900 mb-1 sm:mb-2 text-sm sm:text-base">
                       {resource.title}
                     </h4>
-                    <p className="text-gray-700">{resource.description}</p>
+                    <p className="text-gray-700 text-sm sm:text-base">{resource.description}</p>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Risk Assessment */}
-            <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-              <h3 className="text-2xl font-bold mb-4 text-gray-900">
+            <div className="bg-white rounded-2xl shadow-xl p-5 sm:p-8 mb-6 sm:mb-8">
+              <h3 className="text-xl sm:text-2xl font-bold mb-4 text-gray-900">
                 Risk Assessment
               </h3>
-              <p className="text-gray-700 whitespace-pre-line">
+              <p className="text-gray-700 text-sm sm:text-base whitespace-pre-line">
                 {aiRecommendation.riskAssessment}
               </p>
             </div>
@@ -536,16 +536,16 @@ export default function ResultsPage() {
         )}
 
         {/* Actions */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-          <h3 className="text-2xl font-bold mb-6 text-center text-gray-900">
+        <div className="bg-white rounded-2xl shadow-xl p-5 sm:p-8 mb-8">
+          <h3 className="text-xl sm:text-2xl font-bold mb-5 sm:mb-6 text-center text-gray-900">
             Take Action
           </h3>
-          <div className="flex flex-wrap justify-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap justify-center gap-3 sm:gap-4">
             <button
               onClick={handleDownloadPDF}
               disabled={pdfGenerating || aiLoading}
               title={aiLoading ? 'AI insights are being generated...' : undefined}
-              className={`btn btn-primary flex items-center gap-2 px-6 py-3 rounded-lg font-semibold ${
+              className={`btn btn-primary flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold ${
                 pdfGenerating || aiLoading ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
@@ -564,7 +564,7 @@ export default function ResultsPage() {
 
             <button
               onClick={() => setShowEmailForm(!showEmailForm)}
-              className="btn btn-primary flex items-center gap-2 px-6 py-3 rounded-lg font-semibold"
+              className="btn btn-primary flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-semibold"
             >
               <FiMail />
               Email Results
@@ -572,7 +572,7 @@ export default function ResultsPage() {
 
             <button
               onClick={() => handleShare('twitter')}
-              className="flex items-center gap-2 px-6 py-3 bg-gray-700 text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors"
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-700 text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors"
             >
               <FiShare2 />
               Share
@@ -580,7 +580,7 @@ export default function ResultsPage() {
 
             <a
               href="/assessment/retake"
-              className="flex items-center gap-2 px-6 py-3 bg-white text-primary border-2 border-gray-200 rounded-lg font-semibold hover:border-primary hover:bg-primary-10 transition-colors"
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-white text-primary border-2 border-gray-200 rounded-lg font-semibold hover:border-primary hover:bg-primary-10 transition-colors"
             >
               <FiRefreshCw />
               Retake Assessment
@@ -592,7 +592,7 @@ export default function ResultsPage() {
           {showEmailForm && !emailSubmitted && (
             <form
               onSubmit={handleEmailSubmit}
-              className="mt-6 max-w-md mx-auto flex gap-3"
+              className="mt-6 max-w-md mx-auto flex flex-col sm:flex-row gap-3"
             >
               <input
                 type="email"
@@ -623,14 +623,14 @@ export default function ResultsPage() {
         </div>
 
         {/* CTA */}
-        <div className="bg-primary rounded-2xl shadow-xl p-8 text-white text-center">
-          <h3 className="text-3xl font-bold mb-4">
+        <div className="bg-primary rounded-2xl shadow-xl p-6 sm:p-8 text-white text-center">
+          <h3 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">
             Ready to Accelerate Your Journey?
           </h3>
-          <p className="text-lg mb-6 opacity-90">
+          <p className="text-base sm:text-lg mb-5 sm:mb-6 opacity-90">
             Get 1-on-1 expert guidance to turn your idea into reality
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
             <a
               href="https://calendly.com/beamx-solutions"
               target="_blank"
@@ -638,13 +638,13 @@ export default function ResultsPage() {
               onClick={() =>
                 analytics.ctaClicked('book_consultation', 'results')
               }
-              className="px-8 py-3 bg-white text-primary rounded-lg font-semibold hover:shadow-lg transition-all duration-300"
+              className="px-8 py-3 bg-white text-primary rounded-lg font-semibold hover:shadow-lg transition-all duration-300 text-center"
             >
               Book Free Consultation
             </a>
             <a
               href="/"
-              className="px-8 py-3 bg-transparent border-2 border-white text-white rounded-lg font-semibold hover:bg-white hover:text-primary transition-all duration-300"
+              className="px-8 py-3 bg-transparent border-2 border-white text-white rounded-lg font-semibold hover:bg-white hover:text-primary transition-all duration-300 text-center"
             >
               Back to Home
             </a>
