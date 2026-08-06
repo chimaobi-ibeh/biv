@@ -62,6 +62,29 @@ export const emailRequestSchema = z.object({
 
 export type EmailRequest = z.infer<typeof emailRequestSchema>;
 
+// ── /api/pdf request body ──
+
+// Array bounds are set well above what the client can legitimately send:
+// there are 10 questions and calculateDimensionScores always emits exactly
+// 10 dimensions. They exist to stop a hand-crafted payload from making the
+// server-side renderer walk an unbounded number of elements.
+export const pdfRequestSchema = z.object({
+  userProfile: z.record(z.string(), z.unknown()).optional(),
+  responses: z
+    .array(z.record(z.string(), z.unknown()))
+    .max(100, 'Too many responses')
+    .optional(),
+  scoreResult: z.record(z.string(), z.unknown()),
+  dimensionScores: z
+    .array(z.record(z.string(), z.unknown()))
+    .max(50, 'Too many dimension scores'),
+  aiRecommendation: z.record(z.string(), z.unknown()).nullable().optional(),
+  timestamp: z.unknown().optional(),
+  id: z.string().max(100, 'Id too long').optional(),
+});
+
+export type PdfRequest = z.infer<typeof pdfRequestSchema>;
+
 // ── Validation helper ──
 
 export function validateRequest<T>(

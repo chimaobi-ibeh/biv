@@ -6,16 +6,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.71.2",
+    "@anthropic-ai/sdk": "^0.115.0",
     "@react-pdf/renderer": "^4.3.2",
     "@supabase/supabase-js": "^2.35.0",
     "framer-motion": "^12.23.26",
-    "jspdf": "^3.0.4",
-    "jspdf-autotable": "^5.0.2",
-    "next": "16.0.10",
+    "next": "16.3.0",
     "react": "19.2.1",
     "react-dom": "19.2.1",
     "react-icons": "^5.5.0",
@@ -31,8 +32,9 @@
     "@types/react-dom": "^19",
     "baseline-browser-mapping": "^2.10.14",
     "eslint": "^9",
-    "eslint-config-next": "16.0.10",
+    "eslint-config-next": "16.3.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }

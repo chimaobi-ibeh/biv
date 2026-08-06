@@ -88,10 +88,19 @@ export function checkRateLimit(
 
 /**
  * Extract a client identifier from the request for rate limiting.
- * Uses x-forwarded-for (common behind proxies/Vercel), falls back
- * to a generic key so the limiter still works locally.
+ *
+ * x-vercel-forwarded-for is checked first because the platform overwrites
+ * whatever the caller sent, so it cannot be forged to mint a fresh bucket
+ * on every request. x-forwarded-for and x-real-ip are caller-controlled
+ * when no trusted proxy sets them, and remain only as a fallback so the
+ * limiter still groups requests off-platform and locally.
  */
 export function getClientIP(request: Request): string {
+  const vercelForwarded = request.headers.get('x-vercel-forwarded-for');
+  if (vercelForwarded) {
+    return vercelForwarded.split(',')[0].trim();
+  }
+
   const forwarded = request.headers.get('x-forwarded-for');
   if (forwarded) {
     // x-forwarded-for can be a comma-separated list; take the first
