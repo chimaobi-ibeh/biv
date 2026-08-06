@@ -30,7 +30,6 @@ import {
   calculateDimensionScores,
   generateShareText,
 } from '@/lib/scoring';
-import { generatePDFReport } from '@/lib/pdf-generator';
 import { analytics } from '@/lib/analytics';
 import { useToast } from '@/components/Toast';
 
@@ -185,7 +184,7 @@ export default function ResultsPage() {
     }
   }, [scoreResult, responses, userProfile, addToast]);
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     if (!scoreResult) return;
 
     setPdfGenerating(true);
@@ -201,8 +200,26 @@ export default function ResultsPage() {
         id: Date.now().toString(),
       };
 
-      const pdf = generatePDFReport(result);
-      pdf.save(`business-idea-validation-report-${Date.now()}.pdf`);
+      const response = await fetch('/api/pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(result),
+      });
+
+      if (!response.ok) {
+        throw new Error(`PDF request failed with status ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `business-idea-validation-report-${Date.now()}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
       analytics.reportDownloaded('pdf');
       addToast('PDF report downloaded!', 'success');
     } catch (error) {
