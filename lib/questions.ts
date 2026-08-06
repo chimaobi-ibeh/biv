@@ -181,7 +181,7 @@ export const questions: Question[] = [
   {
     id: 8,
     title: 'Who are your competitors?',
-    subtitle: 'Direct or indirect — their name and website',
+    subtitle: 'Direct or indirect, their name and website',
     type: 'text',
     placeholder: 'e.g., Acme Inc (acme.com), Beta Corp (betacorp.io)',
     validation: (answer: string) => answer.length > 5,

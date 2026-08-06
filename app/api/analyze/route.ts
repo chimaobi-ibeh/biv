@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
       throw new Error('Unexpected response type from Claude');
     }
 
-    const recommendation = parseAIResponse(content.text);
+    const recommendation = stripEmDashesDeep(parseAIResponse(content.text));
 
     return NextResponse.json(
       { recommendation },
@@ -167,7 +167,29 @@ Provide a comprehensive analysis in JSON format with the following structure:
   "riskAssessment": "A frank assessment of the biggest risks and how to mitigate them"
 }
 
-Be specific, actionable, and honest. If they're not ready, say so clearly. If they are ready, give them confidence and clear next steps. Use Nigerian context if location indicates Nigeria.`;
+Be specific, actionable, and honest. If they're not ready, say so clearly. If they are ready, give them confidence and clear next steps. Use Nigerian context if location indicates Nigeria.
+
+Do not use em dashes (—) anywhere in your response. Use commas, periods, or hyphens instead.`;
+}
+
+// ── Em-dash stripper ──
+// Replace em dashes (and any surrounding whitespace) with a spaced hyphen so
+// generated content never contains em dashes in the UI, PDF, or email.
+function stripEmDashesDeep<T>(value: T): T {
+  if (typeof value === 'string') {
+    return value.replace(/\s*—\s*/g, ' - ') as unknown as T;
+  }
+  if (Array.isArray(value)) {
+    return value.map((v) => stripEmDashesDeep(v)) as unknown as T;
+  }
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value)) {
+      out[k] = stripEmDashesDeep(v);
+    }
+    return out as T;
+  }
+  return value;
 }
 
 // ── Response parser ──
