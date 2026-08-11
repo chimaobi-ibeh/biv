@@ -11,6 +11,7 @@ import {
   sanitizeResponses,
   sanitizeUserProfile,
 } from '@/lib/prompt-sanitizer';
+import { saveAssessment, attachRecommendation } from '@/lib/assessment-store';
 
 // ── Rate-limit config: 5 requests per IP per 60 seconds ──
 const RATE_LIMIT = { maxRequests: 5, windowSeconds: 60 };
@@ -121,14 +122,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Sanitise inputs before building the prompt
+    // 5. Persist the submission before calling the model.
+    //
+    // This is the only write path for assessment data, so it runs first: a
+    // truncated, refused or timed-out analysis must still leave the profile
+    // and the ten answers on record. saveAssessment never throws and returns
+    // null when persistence is unconfigured or fails.
+    const assessmentId = await saveAssessment({
+      responses,
+      userProfile,
+      scoreLevel,
+      totalPositive,
+    });
+
+    // 6. Sanitise inputs before building the prompt
     const cleanResponses = sanitizeResponses(responses);
     const cleanProfile = sanitizeUserProfile(
       userProfile as Record<string, string | undefined>
     );
     const cleanScoreLevel = sanitizeForPrompt(scoreLevel);
 
-    // 6. Build prompt and call Claude
+    // 7. Build prompt and call Claude
     const prompt = buildAnalysisPrompt(
       cleanResponses,
       cleanProfile,
@@ -166,6 +180,13 @@ export async function POST(request: NextRequest) {
     }
 
     const recommendation = stripEmDashesDeep(parseAIResponse(message.content));
+
+    // Attach the analysis to the row written in step 5. Awaited rather than
+    // fired and forgotten because serverless can kill the invocation as soon
+    // as the response is returned.
+    if (assessmentId) {
+      await attachRecommendation(assessmentId, recommendation);
+    }
 
     return NextResponse.json(
       { recommendation },

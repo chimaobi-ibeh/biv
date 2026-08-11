@@ -1,5 +1,14 @@
 -- Create the business_idea_assessments table to store all 10 questions
 -- Run this SQL in the Supabase SQL Editor
+--
+-- ############################################################
+-- # DO NOT RUN THIS AGAINST THE LIVE PROJECT.                #
+-- # The DROP TABLE below destroys every stored assessment.   #
+-- # This file is the original bootstrap only. The live table #
+-- # already exists; changes belong in a new additive         #
+-- # migration, and the RLS policies at the bottom have since #
+-- # been replaced by restrict_assessment_rls_policies.sql.   #
+-- ############################################################
 
 -- Drop table if it exists (use with caution in production)
 DROP TABLE IF EXISTS business_idea_assessments CASCADE;

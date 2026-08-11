@@ -10,15 +10,28 @@ Follow these steps to set up the database for storing all 10 assessment question
 2. Navigate to the **SQL Editor** in the left sidebar
 3. Click **New Query**
 
-### 2. Run the Migration
+### 2. Run the Migrations
 
-Copy and paste the contents of `create_business_idea_assessments.sql` into the SQL Editor and click **Run**.
+> **The live project is already set up. Do not run
+> `create_business_idea_assessments.sql` against it.** That file starts with
+> `DROP TABLE ... CASCADE` and will destroy every stored assessment. It is the
+> original bootstrap, kept for reference and for standing up a fresh project.
 
-This will create:
-- A new table `business_idea_assessments` with JSONB storage for all responses
-- Proper indexes for performance
-- Row Level Security (RLS) policies for public access
-- Generated columns for quick access to key answers
+Run these in order in the SQL Editor. All of them after the first are additive
+and safe to re-run:
+
+| Order | File | What it does |
+| --- | --- | --- |
+| 1 | `create_business_idea_assessments.sql` | Creates the table, indexes and generated columns. **New projects only.** |
+| 2 | `add_rating_to_assessments.sql` | Adds `rating`, `rating_label`, `score_level`, `total_positive`. |
+| 3 | `restrict_assessment_rls_policies.sql` | Drops the public read/write policies and revokes the anon grants. |
+| 4 | `add_ai_recommendation_to_assessments.sql` | Adds `ai_recommendation` and `stage`. |
+| 5 | `normalize_score_level.sql` | Rewrites legacy `'Green Light'` values as `'green'`. |
+
+After step 3, the anon key can no longer touch this table by design. Writes
+come from the server in `lib/assessment-store.ts`, which uses
+`SUPABASE_SERVICE_ROLE_KEY` and bypasses RLS. Set that variable in `.env` and
+in your hosting environment, or nothing is stored.
 
 ### 3. Verify the Table
 
@@ -91,9 +104,17 @@ WHERE completed_at IS NOT NULL;
 
 ## Security
 
-The table has Row Level Security (RLS) enabled with public policies that allow:
-- ✅ Anyone can insert (create) assessments
-- ✅ Anyone can read assessments
-- ✅ Anyone can update assessments
+Row Level Security is enabled and **no policies remain**, so the anon key
+matches nothing and is denied by default. The underlying table grants were
+revoked from the `anon` role as well, in `restrict_assessment_rls_policies.sql`.
 
-If you need to restrict access later, you can modify the policies in the Supabase Dashboard under **Authentication > Policies**.
+- ❌ The anon key cannot insert, read or update
+- ✅ The server writes with `SUPABASE_SERVICE_ROLE_KEY`, which bypasses RLS
+
+This matters because the table holds names, emails and the free-text
+assessment answers. The original `USING (true)` policies made all of that
+readable and tamperable by anyone holding the anon key, which ships in the
+browser bundle.
+
+Keep the service role key server-side only. It must never appear in a
+`NEXT_PUBLIC_*` variable or be imported from a `'use client'` component.
