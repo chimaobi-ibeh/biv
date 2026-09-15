@@ -8,6 +8,10 @@ const resend = new Resend(process.env.RESEND_API_KEY || 're_placeholder');
 // ── Rate-limit: 3 emails per IP per 60 seconds ──
 const RATE_LIMIT = { maxRequests: 3, windowSeconds: 60 };
 
+// Emails are rendered server-side and read outside the app, so every link must
+// be absolute. Falling back to '' here would ship a dead <a href="">.
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://stellar.beamxsolutions.com';
+
 export async function POST(request: NextRequest) {
   try {
     // 1. Rate limiting
@@ -133,7 +137,7 @@ async function sendWelcomeEmail(
               <p>We are preparing your detailed personalized report with AI-powered recommendations tailored specifically to your business idea.</p>
 
               <p>Ready to accelerate your journey? Book a free 30-minute consultation with our team:</p>
-              <a href="https://calendly.com/beamx-solutions" class="cta-button">
+              <a href="https://calendly.com/beamxsolutions" class="cta-button">
                 Book Free Consultation
               </a>
             </div>
@@ -157,7 +161,7 @@ async function sendDetailedReport(email: string, name: string) {
       <h1>Your Detailed Report is Ready!</h1>
       <p>Hi ${escapeHtml(name || 'there')},</p>
       <p>Your comprehensive business validation report with AI-powered recommendations is ready.</p>
-      <p>Visit <a href="${escapeHtml(process.env.NEXT_PUBLIC_APP_URL || '')}">BeamX Business Validator</a> to download your report.</p>
+      <p>Visit <a href="${escapeHtml(APP_URL)}">BeamX Business Validator</a> to download your report.</p>
     `,
   });
 }

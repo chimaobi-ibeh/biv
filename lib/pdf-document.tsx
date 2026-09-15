@@ -1022,7 +1022,7 @@ export const PDFDocument: React.FC<PDFDocumentProps> = ({ result }) => {
         <View style={styles.ctaCard}>
           <Text style={styles.ctaCardTitle}>1-on-1 validation session</Text>
           <Text style={styles.ctaCardDesc}>Pressure-test your idea with our team.</Text>
-          <Text style={styles.ctaCardLink}>calendly.com/beamx-solutions</Text>
+          <Text style={styles.ctaCardLink}>calendly.com/beamxsolutions</Text>
         </View>
         <View style={styles.ctaCard}>
           <Text style={styles.ctaCardTitle}>Email us</Text>
